@@ -66,12 +66,23 @@ e-platform/
 
 | 阶段 | 状态 | 说明 |
 |------|------|------|
-| 阶段一：项目骨架 + 核心 UI 框架 | ⏳ 进行中 | Electron + React + TS + SQLite |
+| 阶段一：项目骨架 + 核心 UI 框架 | ✅ 已完成 | Electron + React + TS + SQLite + Ant Design UI |
 | 阶段二：AI 图片生成引擎 | 📋 待开始 | 多提供商接入 |
 | 阶段三：平台适配层 — 拼多多 | 📋 待开始 | MD5 签名 + OAuth 2.0 |
 | 阶段四：完整工作流串联 | 📋 待开始 | 最小闭环 |
 | 阶段五：批量模式 | 📋 待开始 | 批量导入/生成/发布 |
 | 阶段六：测试 & 打包发布 | 📋 待开始 | Windows 安装包 |
+
+### 已完成详情
+- [x] 项目骨架搭建（Electron + React + TypeScript + Vite）
+- [x] Express 后端服务器（health check 端点）
+- [x] SQLite 数据库服务（商品表 + 图片表）
+- [x] Zustand 全局状态管理（AI 提供商 + 平台凭据 CRUD）
+- [x] Ant Design UI 框架 + Layout 组件（侧边栏 + 路由）
+- [x] 8 个页面骨架（工作台/AI生成/图片编辑/发布/平台管理/批量/日志/设置）
+- [x] 设置页面完整 UI：内置 AI 提供商模板 + 自定义提供商表单 + 平台凭据管理
+- [x] electron-builder NSIS 打包配置
+- [x] TypeScript 编译零错误，vite build 通过
 
 ## 配置说明
 
