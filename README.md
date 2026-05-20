@@ -69,7 +69,7 @@ e-platform/
 | 阶段一：项目骨架 + 核心 UI 框架 | ✅ 已完成 | Electron + React + TS + SQLite + Ant Design UI |
 | 阶段二：AI 图片生成引擎 | ✅ 已完成 | 多提供商接入 + Prompt 模板 + Sharp 图片处理 |
 | 阶段三：平台适配层 — 拼多多 | ✅ 已完成 | MD5 签名 + OAuth + 类目查询 + 图片上传 + 商品发布 |
-| 阶段四：完整工作流串联 | 📋 待开始 | 最小闭环 |
+| 阶段四：完整工作流串联 | ✅ 已完成 | 最小闭环 |
 | 阶段五：批量模式 | 📋 待开始 | 批量导入/生成/发布 |
 | 阶段六：测试 & 打包发布 | 📋 待开始 | Windows 安装包 |
 
@@ -93,15 +93,22 @@ e-platform/
 - [x] 前端 API 调用封装（src/services/api.ts）
 - [x] tsconfig @ 路径别名配置
 
+### 阶段四：完整工作流串联 ✅
+- [x] 数据库增强：products 表 draft_data 字段 + DraftService + Products CRUD + getLogs + exportData
+- [x] 数据库迁移：自动添加 draft_data 字段（ALTER TABLE，已存在字段忽略）
+- [x] 商品管理路由：POST/GET/PUT/DELETE /api/products（CRUD 完整）
+- [x] 草稿路由：POST/GET/DELETE /api/drafts/:id + GET /api/drafts（保存/加载/列表/删除）
+- [x] 操作日志路由：GET /api/logs（过滤+分页）+ GET /api/logs/publish-history
+- [x] 数据备份路由：POST /api/backup/export + /import + GET /api/backup/list
+- [x] 重试中间件：withRetry（指数退避 1s→2s→4s，网络错误自动重试 3 次）
+- [x] PDD upload/publish 端点接入重试机制
+- [x] Publish 页面改造：product_id 贯穿、自动保存草稿（防抖 2s）、草稿恢复、发布历史从日志加载、图片从数据库加载
+- [x] Dashboard 页面改造：实时统计（图片/发布/平台）、最近任务列表、最近发布记录
+- [x] 所有新端点 curl 验证通过
+- [x] TypeScript 编译零错误
+
 ### 阶段三：平台适配层 — 拼多多 ✅
 - [x] IPlatformAdapter 统一接口定义
-- [x] 拼多多 MD5 签名工具 (pdd-sign.ts)
-- [x] PDD 适配器完整实现（OAuth 2.0 / 类目查询 / 图片上传 / 商品发布 / 商品查询）
-- [x] PDD 路由 6 个 API 端点（/api/pdd/credentials, /categories, /upload, /publish, /products, /oauth）
-- [x] 数据库平台凭据 CRUD 方法
-- [x] Publish 前端页面（商品表单 / 类目树选择 / 图片选择 / SKU 管理 / 发布按钮 / 发布历史）
-- [x] 前端 API 封装更新
-- [x] 路由修复：images.ts 移除旧的 setDatabaseService 模式
 
 ### 构建与打包
 

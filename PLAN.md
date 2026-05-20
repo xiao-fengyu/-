@@ -241,13 +241,13 @@ interface ImageProviderConfig {
 
 ### 阶段四：完整工作流串联
 
-| 任务 | 产出 |
-|------|------|
-| 全流程串联：需求 → 生成 → 确认 → 填写 → 发布 | 最小闭环跑通 |
-| 草稿保存 & 加载 | 编辑不丢失 |
-| 操作日志 | 关键操作记录 |
-| 异常处理（API 失败重试、图片上传失败回退） | 容错能力 |
-| 数据备份 & 导出 | 数据安全 |
+| 任务 | 产出 | 状态 |
+|------|------|------|
+| 全流程串联：需求 → 生成 → 确认 → 填写 → 发布 | 最小闭环跑通 | ✅ |
+| 草稿保存 & 加载 | 编辑不丢失 | ✅ |
+| 操作日志 | 关键操作记录 | ✅ |
+| 异常处理（API 失败重试、图片上传失败回退） | 容错能力 | ✅ |
+| 数据备份 & 导出 | 数据安全 | ✅ |
 
 ### 阶段五：批量模式
 
@@ -282,6 +282,7 @@ CREATE TABLE products (
   description TEXT,
   status      TEXT DEFAULT 'draft',  -- draft / ready / published / failed
   platform    TEXT,                  -- pdd / taobao / jd / 1688
+  draft_data  TEXT,                  -- JSON 草稿快照（阶段四新增）
   created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -464,5 +465,9 @@ e-platform/
 ## 十、下一步
 
 1. ✅ 本计划书确认
-2. ⏳ 阶段一：搭建项目骨架（Electron + React + TS + SQLite）
-3. 按计划逐阶段推进
+2. ✅ 阶段一：搭建项目骨架（Electron + React + TS + SQLite）
+3. ✅ 阶段二：AI 图片生成引擎
+4. ✅ 阶段三：平台适配层 — 拼多多
+5. ✅ 阶段四：完整工作流串联
+6. ⏳ 阶段五：批量模式
+7. 📋 阶段六：测试 & 打包发布

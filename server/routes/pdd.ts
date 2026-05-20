@@ -8,6 +8,7 @@ import type Database from 'better-sqlite3'
 import { PddAdapter } from '../services/platforms/pdd-adapter'
 import { getDatabase } from '../services/database'
 import type { PlatformCredential, PublishProductParams } from '../services/platforms/adapter'
+import { withRetry } from '../middleware/retry'
 
 const router = express.Router()
 
@@ -123,7 +124,7 @@ router.get('/categories', async (req, res) => {
   }
 })
 
-// ===== 上传图片 =====
+// ===== 上传图片（带重试） =====
 router.post('/upload', async (req, res) => {
   try {
     const { credentialId, imagePath, imageName } = req.body
@@ -137,7 +138,11 @@ router.post('/upload', async (req, res) => {
 
     const adapter = new PddAdapter()
     adapter.setCredential(credential)
-    const result = await adapter.uploadImage(imagePath as string, imageName as string)
+
+    const result = await withRetry(
+      () => adapter.uploadImage(imagePath as string, imageName as string),
+      { maxRetries: 3, delayMs: 1000 }
+    )
 
     if (result.success) {
       res.json({ success: true, data: result })
@@ -149,7 +154,7 @@ router.post('/upload', async (req, res) => {
   }
 })
 
-// ===== 发布商品 =====
+// ===== 发布商品（带重试） =====
 router.post('/publish', async (req, res) => {
   try {
     const { credentialId, ...publishParams } = req.body
@@ -161,7 +166,11 @@ router.post('/publish', async (req, res) => {
 
     const adapter = new PddAdapter()
     adapter.setCredential(credential)
-    const result = await adapter.publishProduct(publishParams as PublishProductParams)
+
+    const result = await withRetry(
+      () => adapter.publishProduct(publishParams as PublishProductParams),
+      { maxRetries: 3, delayMs: 2000 }
+    )
 
     if (result.success) {
       // 记录日志

@@ -15,6 +15,7 @@ export function getDatabase(): Database.Database {
     db = new Database(DB_PATH)
     db.pragma('journal_mode = WAL')
     initializeSchema(db)
+    migrateSchema(db)
   }
   return db
 }
@@ -31,6 +32,7 @@ function initializeSchema(database: Database.Database): void {
       description TEXT,
       status TEXT DEFAULT 'draft',
       platform TEXT,
+      draft_data TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -112,8 +114,18 @@ function initializeSchema(database: Database.Database): void {
   `)
 }
 
+/** 数据库迁移（对已存在的库添加新字段） */
+function migrateSchema(database: Database.Database): void {
+  // products 表添加 draft_data 字段（如果不存在）
+  try {
+    database.exec(`ALTER TABLE products ADD COLUMN draft_data TEXT`)
+  } catch {
+    // 字段已存在，忽略
+  }
+}
+
 // ============================================================
-// 数据库操作封装
+// 类型定义
 // ============================================================
 
 export interface ImageInsert {
@@ -129,6 +141,40 @@ export interface ImageInsert {
   file_size: number
 }
 
+export interface ProductInsert {
+  title?: string
+  category_id?: string
+  price?: number
+  stock?: number
+  description?: string
+  platform?: string
+  status?: string
+}
+
+export interface ProductUpdate {
+  title?: string
+  category_id?: string
+  price?: number
+  stock?: number
+  description?: string
+  platform?: string
+  status?: string
+}
+
+export interface DraftData {
+  goodsName?: string
+  goodsDesc?: string
+  categoryId?: string | number
+  images?: string[]
+  skus?: Array<Record<string, unknown>>
+  shipmentLimitSecond?: number
+  extra?: Record<string, unknown>
+}
+
+// ============================================================
+// 数据库操作封装
+// ============================================================
+
 export class DatabaseService {
   private db: Database.Database
 
@@ -136,7 +182,94 @@ export class DatabaseService {
     this.db = getDatabase()
   }
 
-  /** 添加图片记录 */
+  /** ===== 商品 CRUD ===== */
+
+  createProduct(data: ProductInsert): string {
+    const id = `prod_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    this.db.prepare(`
+      INSERT INTO products (id, title, category_id, price, stock, description, platform, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      data.title || null,
+      data.category_id || null,
+      data.price || null,
+      data.stock || null,
+      data.description || null,
+      data.platform || null,
+      data.status || 'draft',
+    )
+    return id
+  }
+
+  getProduct(id: string): Record<string, unknown> | undefined {
+    return this.db.prepare('SELECT * FROM products WHERE id = ?').get(id) as Record<string, unknown> | undefined
+  }
+
+  listProducts(status?: string): Array<Record<string, unknown>> {
+    if (status) {
+      return this.db.prepare('SELECT * FROM products WHERE status = ? ORDER BY updated_at DESC').all(status) as Array<Record<string, unknown>>
+    }
+    return this.db.prepare('SELECT * FROM products ORDER BY updated_at DESC').all() as Array<Record<string, unknown>>
+  }
+
+  updateProduct(id: string, data: ProductUpdate): void {
+    const fields: string[] = []
+    const values: unknown[] = []
+
+    if (data.title !== undefined) { fields.push('title = ?'); values.push(data.title) }
+    if (data.category_id !== undefined) { fields.push('category_id = ?'); values.push(data.category_id) }
+    if (data.price !== undefined) { fields.push('price = ?'); values.push(data.price) }
+    if (data.stock !== undefined) { fields.push('stock = ?'); values.push(data.stock) }
+    if (data.description !== undefined) { fields.push('description = ?'); values.push(data.description) }
+    if (data.platform !== undefined) { fields.push('platform = ?'); values.push(data.platform) }
+    if (data.status !== undefined) { fields.push('status = ?'); values.push(data.status) }
+
+    if (fields.length === 0) return
+
+    fields.push("updated_at = CURRENT_TIMESTAMP")
+    values.push(id)
+
+    this.db.prepare(`UPDATE products SET ${fields.join(', ')} WHERE id = ?`).run(...values)
+  }
+
+  deleteProduct(id: string): void {
+    // 先删除关联的 SKU 和图片
+    this.db.prepare('DELETE FROM skus WHERE product_id = ?').run(id)
+    this.db.prepare('DELETE FROM images WHERE product_id = ?').run(id)
+    this.db.prepare('DELETE FROM products WHERE id = ?').run(id)
+  }
+
+  /** ===== 草稿操作 ===== */
+
+  saveDraft(productId: string, data: DraftData): void {
+    this.db.prepare('UPDATE products SET draft_data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(
+      JSON.stringify(data),
+      productId
+    )
+  }
+
+  loadDraft(productId: string): DraftData | null {
+    const row = this.db.prepare('SELECT draft_data FROM products WHERE id = ?').get(productId) as Record<string, unknown> | undefined
+    if (!row || !row.draft_data) return null
+    try {
+      return JSON.parse(String(row.draft_data))
+    } catch {
+      return null
+    }
+  }
+
+  listDrafts(): Array<Record<string, unknown>> {
+    return this.db.prepare(
+      `SELECT id, title, platform, status, draft_data, created_at, updated_at
+       FROM products
+       WHERE status = 'draft' OR draft_data IS NOT NULL
+       ORDER BY updated_at DESC`
+    ).all() as Array<Record<string, unknown>>
+  }
+
+  /** ===== 图片 ===== */
+
   addImage(data: ImageInsert): string {
     const id = `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
     this.db.prepare(`
@@ -158,7 +291,6 @@ export class DatabaseService {
     return id
   }
 
-  /** 获取所有图片 */
   getImages(productId?: string): Array<Record<string, unknown>> {
     if (productId) {
       return this.db.prepare('SELECT * FROM images WHERE product_id = ? ORDER BY created_at DESC').all(productId) as Array<Record<string, unknown>>
@@ -166,12 +298,40 @@ export class DatabaseService {
     return this.db.prepare('SELECT * FROM images ORDER BY created_at DESC').all() as Array<Record<string, unknown>>
   }
 
-  /** 更新图片状态 */
   updateImageStatus(imageId: string, status: string): void {
     this.db.prepare('UPDATE images SET status = ? WHERE id = ?').run(status, imageId)
   }
 
-  /** 保存提供商配置 */
+  /** ===== SKU ===== */
+
+  addSku(productId: string, data: {
+    spec_name?: string; spec_value?: string; price?: number; stock?: number; image_id?: string
+  }): string {
+    const id = `sku_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    this.db.prepare(`
+      INSERT INTO skus (id, product_id, spec_name, spec_value, price, stock, image_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id, productId,
+      data.spec_name || null,
+      data.spec_value || null,
+      data.price || null,
+      data.stock || null,
+      data.image_id || null,
+    )
+    return id
+  }
+
+  getSkus(productId: string): Array<Record<string, unknown>> {
+    return this.db.prepare('SELECT * FROM skus WHERE product_id = ? ORDER BY id').all(productId) as Array<Record<string, unknown>>
+  }
+
+  deleteSkus(productId: string): void {
+    this.db.prepare('DELETE FROM skus WHERE product_id = ?').run(productId)
+  }
+
+  /** ===== 提供商配置 ===== */
+
   saveProvider(config: {
     id: string; name: string; type: string; endpoint: string;
     api_key: string; model: string; max_images: number;
@@ -187,19 +347,55 @@ export class DatabaseService {
     )
   }
 
-  /** 获取所有提供商 */
   getProviders(): Array<Record<string, unknown>> {
     return this.db.prepare('SELECT * FROM image_providers ORDER BY created_at DESC').all() as Array<Record<string, unknown>>
   }
 
-  /** 添加操作日志 */
+  /** ===== 操作日志 ===== */
+
   addLog(action: string, productId: string | null, platform: string | null, status: string, message: string): void {
     this.db.prepare(
       'INSERT INTO operation_logs (action, product_id, platform, status, message) VALUES (?, ?, ?, ?, ?)'
     ).run(action, productId, platform, status, message)
   }
 
-  // ===== 平台凭据 =====
+  getLogs(options?: {
+    action?: string; platform?: string; status?: string;
+    productId?: string; limit?: number; offset?: number;
+  }): Array<Record<string, unknown>> {
+    const conditions: string[] = []
+    const values: unknown[] = []
+
+    if (options?.action) { conditions.push('action = ?'); values.push(options.action) }
+    if (options?.platform) { conditions.push('platform = ?'); values.push(options.platform) }
+    if (options?.status) { conditions.push('status = ?'); values.push(options.status) }
+    if (options?.productId) { conditions.push('product_id = ?'); values.push(options.productId) }
+
+    const where = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : ''
+    const limit = options?.limit ?? 50
+    const offset = options?.offset ?? 0
+
+    return this.db.prepare(
+      `SELECT * FROM operation_logs${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+    ).all(...values, limit, offset) as Array<Record<string, unknown>>
+  }
+
+  getLogCount(options?: {
+    action?: string; platform?: string; status?: string;
+  }): number {
+    const conditions: string[] = []
+    const values: unknown[] = []
+
+    if (options?.action) { conditions.push('action = ?'); values.push(options.action) }
+    if (options?.platform) { conditions.push('platform = ?'); values.push(options.platform) }
+    if (options?.status) { conditions.push('status = ?'); values.push(options.status) }
+
+    const where = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : ''
+    const row = this.db.prepare(`SELECT COUNT(*) as cnt FROM operation_logs${where}`).get(...values) as Record<string, unknown>
+    return Number(row.cnt)
+  }
+
+  /** ===== 平台凭据 ===== */
 
   savePlatformCredential(data: {
     id: string; platform: string; client_id: string;
@@ -230,6 +426,21 @@ export class DatabaseService {
 
   deletePlatformCredential(id: string): void {
     this.db.prepare('DELETE FROM platform_credentials WHERE id = ?').run(id)
+  }
+
+  /** ===== 数据导出/导入 ===== */
+
+  exportData(): Record<string, unknown> {
+    return {
+      version: 1,
+      exported_at: new Date().toISOString(),
+      products: this.db.prepare('SELECT * FROM products').all(),
+      skus: this.db.prepare('SELECT * FROM skus').all(),
+      images: this.db.prepare('SELECT * FROM images').all(),
+      providers: this.db.prepare('SELECT * FROM image_providers').all(),
+      credentials: this.db.prepare('SELECT id, platform, client_id, client_secret, access_token, refresh_token, expires_at, shop_name, created_at FROM platform_credentials').all(),
+      logs: this.db.prepare('SELECT * FROM operation_logs').all(),
+    }
   }
 }
 

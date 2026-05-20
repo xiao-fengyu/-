@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Form, Select, Input, InputNumber, Button, message,
   Card, Table, Space, Tag, Modal, TreeSelect,
@@ -6,7 +6,7 @@ import {
 } from 'antd'
 import {
   PlusOutlined, SendOutlined, DeleteOutlined,
-  ReloadOutlined,
+  ReloadOutlined, SaveOutlined,
 } from '@ant-design/icons'
 
 import './Publish.css'
@@ -32,18 +32,35 @@ interface SkuItem {
   image?: string
 }
 
+interface ImageRecord {
+  id: string
+  local_path: string
+  url: string
+  type: string
+  prompt: string
+  status: string
+  created_at: string
+}
+
 interface PublishRecord {
   id: number
-  goods_name: string
-  goods_id: string
+  product_id: string
   status: string
   platform: string
-  created_at: string
   message: string
+  created_at: string
+}
+
+interface CredentialItem {
+  id: string
+  platform: string
+  shop_name: string
+  access_token: string
+  expires_at: string
 }
 
 // ============================================================
-// 工具函数
+// API 封装
 // ============================================================
 
 const API = 'http://127.0.0.1:14714'
@@ -67,21 +84,29 @@ export default function PublishPage() {
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState<CategoryNode[]>([])
   const [catLoading, setCatLoading] = useState(false)
-  const [credentials, setCredentials] = useState<any[]>([])
+  const [credentials, setCredentials] = useState<CredentialItem[]>([])
   const [credLoading, setCredLoading] = useState(false)
-  const [selectedImages, setSelectedImages] = useState<string[]>([])
+  const [selectedImages, setSelectedImages] = useState<ImageRecord[]>([])
   const [skus, setSkus] = useState<SkuItem[]>([
     { key: '1', specName: '默认', specValue: '默认规格', price: 0, stock: 0 },
   ])
   const [publishHistory, setPublishHistory] = useState<PublishRecord[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [selectedCredential, setSelectedCredential] = useState<string>('')
+  const [imageModalOpen, setImageModalOpen] = useState(false)
+  const [availableImages, setAvailableImages] = useState<ImageRecord[]>([])
+
+  // === 阶段四新增：商品 & 草稿 ===
+  const [productId, setProductId] = useState<string | null>(null)
+  const [draftSaving, setDraftSaving] = useState(false)
+  const [draftLoaded, setDraftLoaded] = useState(false)
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // 加载凭据列表
   const loadCredentials = useCallback(async () => {
     setCredLoading(true)
     try {
-      const data = await api<{ success: boolean; data: any[] }>('/api/pdd/credentials')
+      const data = await api<{ success: boolean; data: CredentialItem[] }>('/api/pdd/credentials')
       if (data.success) {
         setCredentials(data.data)
         if (data.data.length > 0 && !selectedCredential) {
@@ -116,38 +141,148 @@ export default function PublishPage() {
     }
   }, [selectedCredential])
 
-  // 加载发布历史
+  // 加载发布历史（从日志）
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true)
     try {
-      // 从图片生成列表中获取已发布的图片（通过后端日志接口）
-      // 这里先用占位，实际应该有一个 /api/pdd/history 接口
-      setPublishHistory([])
+      const data = await api<{ success: boolean; data: PublishRecord[] }>(
+        '/api/logs/publish-history?limit=50'
+      )
+      if (data.success) {
+        setPublishHistory(data.data)
+      }
     } catch (e: any) {
-      // ignore
+      // 后端未启动时静默失败
     } finally {
       setHistoryLoading(false)
     }
   }, [])
 
+  // 加载图片列表
+  const loadAvailableImages = useCallback(async () => {
+    try {
+      const data = await api<{ success: boolean; data: ImageRecord[] }>('/api/images')
+      if (data.success) {
+        setAvailableImages(data.data)
+      }
+    } catch (e: any) {
+      message.error('加载图片列表失败')
+    }
+  }, [])
+
+  // === 草稿自动保存（防抖 2 秒）===
+  const scheduleDraftSave = useCallback(() => {
+    if (!productId) return
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
+    draftTimerRef.current = setTimeout(async () => {
+      try {
+        setDraftSaving(true)
+        const values = form.getFieldsValue()
+        await api(`/api/drafts/${productId}`, {
+          method: 'POST',
+          body: JSON.stringify({
+            goodsName: values.goodsName,
+            goodsDesc: values.goodsDesc,
+            categoryId: values.categoryId,
+            images: selectedImages.map(img => img.local_path),
+            skus: skus,
+            shipmentLimitSecond: values.shipmentLimitSecond,
+          }),
+        })
+      } catch {
+        // 静默失败
+      } finally {
+        setDraftSaving(false)
+      }
+    }, 2000)
+  }, [productId, form, selectedImages, skus])
+
+  // 表单变化时触发草稿保存
+  useEffect(() => {
+    scheduleDraftSave()
+  }, [scheduleDraftSave])
+
+  // === 创建商品（发布前）===
+  const ensureProduct = useCallback(async (goodsName: string): Promise<string> => {
+    if (productId) return productId
+
+    const data = await api<{ success: boolean; id: string }>('/api/products', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: goodsName || '未命名商品',
+        platform: 'pdd',
+        status: 'draft',
+      }),
+    })
+    setProductId(data.id)
+    return data.id
+  }, [productId])
+
+  // === 加载草稿 ===
+  const loadDraft = useCallback(async (pid: string) => {
+    try {
+      const data = await api<{ success: boolean; data: Record<string, unknown> | null }>(
+        `/api/drafts/${pid}`
+      )
+      if (data.success && data.data && Object.keys(data.data).length > 0) {
+        const draft = data.data
+        if (draft.goodsName) form.setFieldValue('goodsName', draft.goodsName)
+        if (draft.goodsDesc) form.setFieldValue('goodsDesc', draft.goodsDesc)
+        if (draft.categoryId) form.setFieldValue('categoryId', draft.categoryId)
+        if (draft.shipmentLimitSecond) form.setFieldValue('shipmentLimitSecond', draft.shipmentLimitSecond)
+
+        // 恢复 SKU
+        if (Array.isArray(draft.skus) && draft.skus.length > 0) {
+          setSkus(draft.skus as SkuItem[])
+        }
+
+        // 恢复已选图片路径
+        const draftImagePaths = (draft.images as string[]) || []
+        if (draftImagePaths.length > 0) {
+          // 从 availableImages 中匹配
+          const matched = availableImages.filter(img =>
+            draftImagePaths.includes(img.local_path)
+          )
+          if (matched.length > 0) {
+            setSelectedImages(matched)
+          }
+        }
+
+        setDraftLoaded(true)
+        message.info('已恢复上次草稿')
+      }
+    } catch {
+      // 无草稿或加载失败
+    }
+  }, [form, availableImages])
+
+  // 页面初始化
   useEffect(() => {
     loadCredentials()
     loadHistory()
+    loadAvailableImages()
   }, [])
+
+  // 图片列表加载完后，如果有 productId 则尝试加载草稿
+  useEffect(() => {
+    if (productId && availableImages.length >= 0) {
+      loadDraft(productId)
+    }
+  }, [productId, availableImages, loadDraft])
 
   // 构建类目树选择器数据
   const buildTreeData = (nodes: CategoryNode[]) => {
-    const map = new Map<string | number, CategoryNode & { children?: any[] }>()
+    const map = new Map<string | number, { value: string | number; title: string; selectable: boolean; children: any[] }>()
     const roots: any[] = []
 
     nodes.forEach(n => {
-      map.set(n.id, { ...n, children: [] })
+      map.set(n.id, { value: n.id, title: n.name, selectable: n.isLeaf, children: [] })
     })
 
     nodes.forEach(n => {
       const item = map.get(n.id)!
       if (n.parentId && map.has(n.parentId)) {
-        map.get(n.parentId)!.children!.push({
+        map.get(n.parentId)!.children.push({
           value: n.id,
           title: n.name,
           selectable: n.isLeaf,
@@ -170,13 +305,7 @@ export default function PublishPage() {
   const addSku = () => {
     setSkus([
       ...skus,
-      {
-        key: String(Date.now()),
-        specName: '',
-        specValue: '',
-        price: 0,
-        stock: 0,
-      },
+      { key: String(Date.now()), specName: '', specValue: '', price: 0, stock: 0 },
     ])
   }
 
@@ -190,43 +319,6 @@ export default function PublishPage() {
 
   const updateSku = (key: string, field: keyof SkuItem, value: any) => {
     setSkus(skus.map(s => s.key === key ? { ...s, [field]: value } : s))
-  }
-
-  // 图片选择
-  const handleImageSelect = () => {
-    // 打开文件选择器（通过后端 API 获取已生成的图片列表）
-    api<{ success: boolean; data: { images: Array<{ path: string; filename: string }> } }>(
-      '/api/images/list?page=1&pageSize=50'
-    ).then(data => {
-      if (data.success) {
-        // 打开图片选择 Modal
-        Modal.info({
-          title: '选择商品图片',
-          width: 700,
-          content: (
-            <div className="image-selector">
-              {data.data.images.map(img => (
-                <div
-                  key={img.path}
-                  className={`image-thumb ${selectedImages.includes(img.path) ? 'selected' : ''}`}
-                  onClick={() => {
-                    if (selectedImages.includes(img.path)) {
-                      setSelectedImages(selectedImages.filter(p => p !== img.path))
-                    } else if (selectedImages.length < 10) {
-                      setSelectedImages([...selectedImages, img.path])
-                    } else {
-                      message.warning('最多选择 10 张图片')
-                    }
-                  }}
-                >
-                  <div className="image-path">{img.filename}</div>
-                </div>
-              ))}
-            </div>
-          ),
-        })
-      }
-    }).catch(e => message.error('加载图片列表失败: ' + e.message))
   }
 
   // 上传图片到拼多多图片空间
@@ -248,7 +340,7 @@ export default function PublishPage() {
           uploadedUrls.push(data.data.imageUrl)
         }
       } catch (e: any) {
-        message.error(`图片上传失败: ${imgPath} - ${e.message}`)
+        message.error(`图片上传失败: ${imgPath.split('/').pop()} - ${e.message}`)
       }
     }
     return uploadedUrls
@@ -269,10 +361,14 @@ export default function PublishPage() {
       const values = await form.validateFields()
       setLoading(true)
 
+      // 确保有商品记录
+      const pid = await ensureProduct(values.goodsName)
+
       // 先上传图片到拼多多图片空间
       message.loading({ content: '正在上传图片到平台...', key: 'upload', duration: 0 })
-      const imageUrls = await uploadImagesToPdd(selectedImages)
-      message.success({ content: `图片上传完成 (${imageUrls.length}/${selectedImages.length})`, key: 'upload', duration: 2 })
+      const imagePaths = selectedImages.map(img => img.local_path)
+      const imageUrls = await uploadImagesToPdd(imagePaths)
+      message.success({ content: `图片上传完成 (${imageUrls.length}/${imagePaths.length})`, key: 'upload', duration: 2 })
 
       if (imageUrls.length === 0) {
         message.error('没有图片上传成功，无法发布')
@@ -298,13 +394,16 @@ export default function PublishPage() {
       message.loading({ content: '正在发布商品...', key: 'publish', duration: 0 })
       const data = await api<{ success: boolean; goodsId: string; message: string }>(
         '/api/pdd/publish',
-        {
-          method: 'POST',
-          body: JSON.stringify(publishParams),
-        }
+        { method: 'POST', body: JSON.stringify(publishParams) }
       )
 
       if (data.success) {
+        // 更新商品状态
+        await api(`/api/products/${pid}`, {
+          method: 'PUT',
+          body: JSON.stringify({ status: 'published' }),
+        })
+
         message.success({
           content: `发布成功！商品 ID: ${data.goodsId}`,
           key: 'publish',
@@ -313,6 +412,7 @@ export default function PublishPage() {
         form.resetFields()
         setSelectedImages([])
         setSkus([{ key: '1', specName: '默认', specValue: '默认规格', price: 0, stock: 0 }])
+        setProductId(null)
         loadHistory()
       }
     } catch (e: any) {
@@ -324,8 +424,13 @@ export default function PublishPage() {
 
   // 发布历史表格列
   const historyColumns = [
-    { title: '商品名称', dataIndex: 'goods_name', key: 'goods_name', ellipsis: true },
-    { title: '商品 ID', dataIndex: 'goods_id', key: 'goods_id', width: 120 },
+    {
+      title: '商品 ID',
+      dataIndex: 'product_id',
+      key: 'product_id',
+      width: 160,
+      ellipsis: true,
+    },
     {
       title: '状态',
       dataIndex: 'status',
@@ -338,12 +443,33 @@ export default function PublishPage() {
       ),
     },
     { title: '平台', dataIndex: 'platform', key: 'platform', width: 80 },
+    { title: '信息', dataIndex: 'message', key: 'message', ellipsis: true },
     { title: '时间', dataIndex: 'created_at', key: 'created_at', width: 180 },
   ]
 
   return (
     <div className="publish-page">
       <h2 className="page-title">发布商品到拼多多</h2>
+
+      {/* 状态提示 */}
+      {draftLoaded && (
+        <Alert
+          message="已恢复草稿"
+          description="系统已自动加载上次未完成的发布表单，请继续编辑。"
+          type="info"
+          showIcon
+          closable
+          style={{ marginBottom: 16 }}
+        />
+      )}
+      {draftSaving && (
+        <Alert
+          message="草稿保存中..."
+          type="info"
+          showIcon
+          style={{ marginBottom: 8 }}
+        />
+      )}
 
       {/* 凭据选择 */}
       <Card size="small" title="店铺凭据" className="section-card">
@@ -421,7 +547,7 @@ export default function PublishPage() {
           style={{ marginBottom: 12 }}
         />
         <Space>
-          <Button onClick={handleImageSelect} icon={<PlusOutlined />}>
+          <Button onClick={() => { loadAvailableImages(); setImageModalOpen(true); }}>
             从图片库选择
           </Button>
           {selectedImages.length > 0 && (
@@ -431,10 +557,14 @@ export default function PublishPage() {
           )}
         </Space>
         {selectedImages.length > 0 && (
-          <div className="selected-images">
-            {selectedImages.map((path, i) => (
-              <Tag key={path} closable onClose={() => setSelectedImages(selectedImages.filter(p => p !== path))}>
-                {i + 1}. {path.split('/').pop()}
+          <div className="selected-images" style={{ marginTop: 12 }}>
+            {selectedImages.map((img, i) => (
+              <Tag
+                key={img.id}
+                closable
+                onClose={() => setSelectedImages(selectedImages.filter(p => p.id !== img.id))}
+              >
+                {i + 1}. {img.local_path.split('/').pop()}
                 {i === 0 && <Tag color="blue" style={{ marginLeft: 4 }}>主图</Tag>}
               </Tag>
             ))}
@@ -442,13 +572,58 @@ export default function PublishPage() {
         )}
       </Card>
 
+      {/* 图片选择 Modal */}
+      <Modal
+        title="选择商品图片"
+        open={imageModalOpen}
+        onCancel={() => setImageModalOpen(false)}
+        onOk={() => setImageModalOpen(false)}
+        width={700}
+      >
+        <div style={{ maxHeight: 400, overflowY: 'auto', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {availableImages.map(img => {
+            const isSelected = selectedImages.some(s => s.id === img.id)
+            return (
+              <div
+                key={img.id}
+                onClick={() => {
+                  if (isSelected) {
+                    setSelectedImages(selectedImages.filter(s => s.id !== img.id))
+                  } else if (selectedImages.length < 10) {
+                    setSelectedImages([...selectedImages, img])
+                  } else {
+                    message.warning('最多选择 10 张图片')
+                  }
+                }}
+                style={{
+                  width: 100, height: 100, border: isSelected ? '3px solid #1890ff' : '1px solid #d9d9d9',
+                  borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', background: isSelected ? '#e6f7ff' : '#fafafa',
+                }}
+              >
+                <span style={{ fontSize: 11, color: '#666', textAlign: 'center', padding: 4 }}>
+                  {img.local_path.split('/').pop()?.slice(0, 15)}
+                </span>
+              </div>
+            )
+          })}
+          {availableImages.length === 0 && (
+            <div style={{ padding: 40, color: '#999', textAlign: 'center', width: '100%' }}>
+              暂无可用图片，请先在"AI 生成"中生成商品图片
+            </div>
+          )}
+        </div>
+      </Modal>
+
       {/* SKU 管理 */}
       <Card
         title="SKU 规格"
         className="section-card"
-        extra={<Button type="primary" size="small" onClick={addSku} icon={<PlusOutlined />}>
-          添加 SKU
-        </Button>}
+        extra={
+          <Button type="primary" size="small" onClick={addSku} icon={<PlusOutlined />}>
+            添加 SKU
+          </Button>
+        }
       >
         <Table
           dataSource={skus}
@@ -457,61 +632,33 @@ export default function PublishPage() {
           pagination={false}
           columns={[
             {
-              title: '规格名',
-              dataIndex: 'specName',
-              width: 120,
+              title: '规格名', dataIndex: 'specName', width: 120,
               render: (v: string, r: SkuItem) => (
                 <Input value={v} onChange={e => updateSku(r.key, 'specName', e.target.value)} size="small" />
               ),
             },
             {
-              title: '规格值',
-              dataIndex: 'specValue',
-              width: 150,
+              title: '规格值', dataIndex: 'specValue', width: 150,
               render: (v: string, r: SkuItem) => (
                 <Input value={v} onChange={e => updateSku(r.key, 'specValue', e.target.value)} size="small" />
               ),
             },
             {
-              title: '价格（元）',
-              dataIndex: 'price',
-              width: 120,
+              title: '价格（元）', dataIndex: 'price', width: 120,
               render: (v: number, r: SkuItem) => (
-                <InputNumber
-                  value={v}
-                  min={0}
-                  step={0.01}
-                  onChange={val => updateSku(r.key, 'price', val || 0)}
-                  size="small"
-                  style={{ width: '100%' }}
-                />
+                <InputNumber value={v} min={0} step={0.01} onChange={val => updateSku(r.key, 'price', val || 0)} size="small" style={{ width: '100%' }} />
               ),
             },
             {
-              title: '库存',
-              dataIndex: 'stock',
-              width: 100,
+              title: '库存', dataIndex: 'stock', width: 100,
               render: (v: number, r: SkuItem) => (
-                <InputNumber
-                  value={v}
-                  min={0}
-                  onChange={val => updateSku(r.key, 'stock', val || 0)}
-                  size="small"
-                  style={{ width: '100%' }}
-                />
+                <InputNumber value={v} min={0} onChange={val => updateSku(r.key, 'stock', val || 0)} size="small" style={{ width: '100%' }} />
               ),
             },
             {
-              title: '操作',
-              width: 80,
+              title: '操作', width: 80,
               render: (_: any, r: SkuItem) => (
-                <Button
-                  danger
-                  size="small"
-                  icon={<DeleteOutlined />}
-                  onClick={() => removeSku(r.key)}
-                  disabled={skus.length <= 1}
-                />
+                <Button danger size="small" icon={<DeleteOutlined />} onClick={() => removeSku(r.key)} disabled={skus.length <= 1} />
               ),
             },
           ]}
@@ -529,14 +676,48 @@ export default function PublishPage() {
         >
           发布商品
         </Button>
+        {productId && (
+          <Button
+            icon={<SaveOutlined />}
+            onClick={async () => {
+              if (!productId) return
+              try {
+                setDraftSaving(true)
+                const values = form.getFieldsValue()
+                await api(`/api/drafts/${productId}`, {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    goodsName: values.goodsName,
+                    goodsDesc: values.goodsDesc,
+                    categoryId: values.categoryId,
+                    images: selectedImages.map(img => img.local_path),
+                    skus,
+                    shipmentLimitSecond: values.shipmentLimitSecond,
+                  }),
+                })
+                message.success('草稿已保存')
+              } catch (e: any) {
+                message.error('保存草稿失败: ' + e.message)
+              } finally {
+                setDraftSaving(false)
+              }
+            }}
+          >
+            保存草稿
+          </Button>
+        )}
       </div>
 
       {/* 发布历史 */}
-      <Card title="发布历史" className="section-card" extra={
-        <Button size="small" icon={<ReloadOutlined />} onClick={loadHistory} loading={historyLoading}>
-          刷新
-        </Button>
-      }>
+      <Card
+        title="发布历史"
+        className="section-card"
+        extra={
+          <Button size="small" icon={<ReloadOutlined />} onClick={loadHistory} loading={historyLoading}>
+            刷新
+          </Button>
+        }
+      >
         <Table
           dataSource={publishHistory}
           columns={historyColumns}
