@@ -125,6 +125,7 @@ npm run electron:build -- --linux
 
 | 问题 | 原因 | 解决 |
 |------|------|------|
+| `npm install` 卡在 electron 安装 | GitHub CDN 下载超时（`socket hang up`） | 使用国内镜像：`ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ npm install` |
 | `npm install` 报错 `sharp` | 缺少 C++ 构建工具 | 安装 Visual Studio Build Tools（Windows）或 `build-essential`（Linux） |
 | 启动后白屏 | 前端构建失败 | 运行 `npm run build` 检查是否有 TS 错误 |
 | 生成图片失败 | API Key 未配置 | 检查 `config.json` 中的 `apiKey` 字段 |
