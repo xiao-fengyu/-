@@ -198,6 +198,39 @@ export class DatabaseService {
       'INSERT INTO operation_logs (action, product_id, platform, status, message) VALUES (?, ?, ?, ?, ?)'
     ).run(action, productId, platform, status, message)
   }
+
+  // ===== 平台凭据 =====
+
+  savePlatformCredential(data: {
+    id: string; platform: string; client_id: string;
+    client_secret: string; access_token?: string;
+    refresh_token?: string; expires_at?: string; shop_name?: string;
+  }): void {
+    this.db.prepare(`
+      INSERT OR REPLACE INTO platform_credentials
+      (id, platform, client_id, client_secret, access_token, refresh_token, expires_at, shop_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      data.id, data.platform, data.client_id, data.client_secret,
+      data.access_token || null, data.refresh_token || null,
+      data.expires_at || null, data.shop_name || null
+    )
+  }
+
+  getPlatformCredential(id: string): Record<string, unknown> | undefined {
+    return this.db.prepare('SELECT * FROM platform_credentials WHERE id = ?').get(id) as Record<string, unknown> | undefined
+  }
+
+  getPlatformCredentials(platform?: string): Array<Record<string, unknown>> {
+    if (platform) {
+      return this.db.prepare('SELECT * FROM platform_credentials WHERE platform = ? ORDER BY created_at DESC').all(platform) as Array<Record<string, unknown>>
+    }
+    return this.db.prepare('SELECT id, platform, shop_name, access_token, expires_at, created_at FROM platform_credentials ORDER BY created_at DESC').all() as Array<Record<string, unknown>>
+  }
+
+  deletePlatformCredential(id: string): void {
+    this.db.prepare('DELETE FROM platform_credentials WHERE id = ?').run(id)
+  }
 }
 
 export function closeDatabase(): void {

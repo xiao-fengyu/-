@@ -2,126 +2,142 @@
 // 前端 API 调用封装
 // ============================================================
 
-import type { ImageProviderConfig } from '../../server/services/image-gen/types'
+import axios from 'axios'
 
-const BASE = 'http://localhost:3001/api'
+const API_BASE = 'http://127.0.0.1:14714'
 
-// ============================================================
-// Prompt 模板
-// ============================================================
+const api = axios.create({
+  baseURL: API_BASE,
+  timeout: 120000,
+})
 
+// ===== AI 图片生成 =====
+
+/** 获取 Prompt 模板列表 */
 export async function fetchTemplates() {
-  const res = await fetch(`${BASE}/images/templates`)
-  return res.json()
+  const res = await api.get('/api/images/templates')
+  return res.data
 }
 
-export async function fetchTemplatesByCategory(category: string) {
-  const res = await fetch(`${BASE}/images/templates/category/${category}`)
-  return res.json()
-}
-
+/** 渲染模板 prompt */
 export async function renderTemplate(templateId: string, variables: Record<string, string>) {
-  const res = await fetch(`${BASE}/images/templates/render`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ templateId, variables }),
-  })
-  return res.json()
+  const res = await api.post('/api/images/templates/render', { templateId, variables })
+  return res.data
 }
 
-// ============================================================
-// 图片生成
-// ============================================================
-
-export interface GenerateParams {
-  providerConfig: ImageProviderConfig
+/** 生成图片 */
+export async function generateImages(params: {
+  providerConfig: Record<string, unknown>
   prompt: string
   count?: number
   width?: number
   height?: number
-  style?: string
-  quality?: string
-  seed?: number
-  productId?: string
+}) {
+  const res = await api.post('/api/images/generate', params)
+  return res.data
 }
 
-export async function generateImages(params: GenerateParams) {
-  const res = await fetch(`${BASE}/images/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  })
-  return res.json()
+/** 合规检查 */
+export async function checkCompliance(imagePath: string) {
+  const res = await api.post('/api/images/compliance', { imagePath })
+  return res.data
 }
 
-// ============================================================
-// 图片处理
-// ============================================================
-
-export async function checkCompliance(imagePath: string, requirements?: any) {
-  const res = await fetch(`${BASE}/images/compliance`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imagePath, requirements }),
-  })
-  return res.json()
-}
-
+/** 自动处理图片 */
 export async function processImage(
   imagePath: string,
-  requirements?: any,
-  targetWidth?: number,
-  targetHeight?: number
+  format?: string,
+  width?: number,
+  height?: number
 ) {
-  const res = await fetch(`${BASE}/images/process`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imagePath, requirements, targetWidth, targetHeight }),
+  const res = await api.post('/api/images/process', {
+    imagePath,
+    format,
+    width,
+    height,
   })
-  return res.json()
+  return res.data
 }
 
-export async function convertFormat(imagePath: string, outputPath: string, format: string) {
-  const res = await fetch(`${BASE}/images/convert`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imagePath, outputPath, format }),
-  })
-  return res.json()
+/** 获取图片列表 */
+export async function fetchImages(page = 1, pageSize = 50) {
+  const res = await api.get('/api/images', { params: { page, pageSize } })
+  return res.data
 }
 
-// ============================================================
-// 图片管理
-// ============================================================
-
-export async function fetchImages() {
-  const res = await fetch(`${BASE}/images/images`)
-  return res.json()
-}
-
+/** 删除图片 */
 export async function deleteImage(filename: string) {
-  const res = await fetch(`${BASE}/images/images/${filename}`, { method: 'DELETE' })
-  return res.json()
+  const res = await api.delete(`/api/images/${filename}`)
+  return res.data
 }
 
-// ============================================================
-// 提供商管理
-// ============================================================
+// ===== 平台发布 =====
 
-export async function validateProvider(providerConfig: ImageProviderConfig) {
-  const res = await fetch(`${BASE}/images/providers/validate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ providerConfig }),
+/** 获取平台类目树 */
+export async function fetchCategories(platform: string, parentId?: number) {
+  const res = await api.get(`/api/platforms/${platform}/categories`, {
+    params: parentId !== undefined ? { parentId } : {},
   })
-  return res.json()
+  return res.data
 }
 
-export async function getProviderModels(providerConfig: ImageProviderConfig) {
-  const res = await fetch(`${BASE}/images/providers/models`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ providerConfig }),
+/** 上传图片到平台 */
+export async function uploadToPlatform(platform: string, filePath: string, credentialId: string) {
+  const FormData = (await import('form-data')).default
+  const formData = new FormData()
+  formData.append('credentialId', credentialId)
+
+  // 注意：浏览器环境需要用 Blob，这里后端用文件路径
+  const res = await api.post(`/api/platforms/${platform}/upload`, formData, {
+    headers: formData.getHeaders?.(),
+    params: { filePath, credentialId },
   })
-  return res.json()
+  return res.data
 }
+
+/** 发布商品 */
+export async function publishProduct(platform: string, params: {
+  credentialId: string
+  goodsName: string
+  goodsDesc?: string
+  categoryId: string | number
+  images: string[]
+  mainImageIndex?: number
+  skus: Array<{
+    specName?: string
+    specValue?: string
+    price: number
+    stock: number
+    image?: string
+  }>
+  deliveryAddress?: string
+  logisticsId?: string
+  shipmentLimitSecond?: number
+}) {
+  const res = await api.post(`/api/platforms/${platform}/publish`, params)
+  return res.data
+}
+
+/** 查询平台商品详情 */
+export async function fetchProductInfo(platform: string, goodsId: string | number, credentialId: string) {
+  const res = await api.get(`/api/platforms/${platform}/products/${goodsId}`, {
+    params: { credentialId },
+  })
+  return res.data
+}
+
+/** 获取平台商品列表 */
+export async function fetchPlatformProducts(platform: string, credentialId: string, page = 1, pageSize = 20) {
+  const res = await api.get(`/api/platforms/${platform}/products`, {
+    params: { credentialId, page, pageSize },
+  })
+  return res.data
+}
+
+/** 平台 OAuth 授权 */
+export async function platformAuth(platform: string, credentialId: string, code?: string) {
+  const res = await api.post(`/api/platforms/${platform}/auth`, { credentialId, code })
+  return res.data
+}
+
+export default api

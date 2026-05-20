@@ -18,7 +18,7 @@ import {
   getTemplatesByCategory,
   getCategories,
 } from '../services/image-gen/templates'
-import type { DatabaseService } from '../services/database'
+import { DatabaseService, getDatabase } from '../services/database'
 
 const router = Router()
 
@@ -26,10 +26,9 @@ const router = Router()
 const DATA_DIR = path.join(__dirname, '../../../data/images')
 const processor = new ImageProcessor(DATA_DIR)
 
-// 注入数据库服务
-let db: DatabaseService
-export function setDatabaseService(databaseService: DatabaseService) {
-  db = databaseService
+// 获取数据库服务
+function getDb(): DatabaseService {
+  return new DatabaseService()
 }
 
 // ============================================================
@@ -157,8 +156,8 @@ router.post('/generate', async (req, res) => {
     }
 
     // 保存到数据库
-    if (db) {
-      for (const r of results) {
+    const db = getDb()
+    for (const r of results) {
         db.addImage({
           product_id: req.body.productId || null,
           local_path: r.localPath,
@@ -171,7 +170,6 @@ router.post('/generate', async (req, res) => {
           height: r.height,
           file_size: r.fileSize,
         })
-      }
     }
 
     res.json({
