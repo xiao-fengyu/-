@@ -1,0 +1,21 @@
+{
+  "aiProvider": {
+    "name": "",
+    "endpoint": "",
+    "apiKey": "your-api-key-here",
+    "model": ""
+  },
+  "platforms": {
+    "pinduoduo": {
+      "clientId": "your-client-id",
+      "clientSecret": "your-client-secret",
+      "redirectUri": "http://localhost:3000/callback"
+    }
+  },
+  "imageOutput": {
+    "minWidth": 480,
+    "minHeight": 480,
+    "maxSizeMB": 3,
+    "format": "jpg"
+  }
+}
