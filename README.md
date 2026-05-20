@@ -67,7 +67,7 @@ e-platform/
 | 阶段 | 状态 | 说明 |
 |------|------|------|
 | 阶段一：项目骨架 + 核心 UI 框架 | ✅ 已完成 | Electron + React + TS + SQLite + Ant Design UI |
-| 阶段二：AI 图片生成引擎 | 📋 待开始 | 多提供商接入 |
+| 阶段二：AI 图片生成引擎 | ✅ 已完成 | 多提供商接入 + Prompt 模板 + Sharp 图片处理 |
 | 阶段三：平台适配层 — 拼多多 | 📋 待开始 | MD5 签名 + OAuth 2.0 |
 | 阶段四：完整工作流串联 | 📋 待开始 | 最小闭环 |
 | 阶段五：批量模式 | 📋 待开始 | 批量导入/生成/发布 |
@@ -76,13 +76,26 @@ e-platform/
 ### 已完成详情
 - [x] 项目骨架搭建（Electron + React + TypeScript + Vite）
 - [x] Express 后端服务器（health check 端点）
-- [x] SQLite 数据库服务（商品表 + 图片表）
+- [x] SQLite 数据库服务（商品表 + 图片表 + 提供商表 + 日志表）
 - [x] Zustand 全局状态管理（AI 提供商 + 平台凭据 CRUD）
 - [x] Ant Design UI 框架 + Layout 组件（侧边栏 + 路由）
 - [x] 8 个页面骨架（工作台/AI生成/图片编辑/发布/平台管理/批量/日志/设置）
 - [x] 设置页面完整 UI：内置 AI 提供商模板 + 自定义提供商表单 + 平台凭据管理
 - [x] electron-builder NSIS 打包配置
 - [x] TypeScript 编译零错误，vite build 通过
+- [x] BUILD.md 构建与打包指南
+- [x] IImageProvider 统一接口（DALL-E 3 / 通义万相 / 自定义端点）
+- [x] Prompt 模板系统（10 个电商场景模板：服装/数码/家居/食品/通用）
+- [x] Sharp 图片处理服务（合规检查/缩放/裁剪/格式转换/自动压缩）
+- [x] 图片生成 API 路由（生成/合规检查/自动处理/图片管理/提供商验证）
+- [x] ImageGenerator 页面完整 UI（模板选择 → 主体填空 → 自动渲染 Prompt → 生成 → 图片网格预览 → 合规检查 → 历史浏览）
+- [x] DatabaseService 封装（图片/提供商/日志 CRUD）
+- [x] 前端 API 调用封装（src/services/api.ts）
+- [x] tsconfig @ 路径别名配置
+
+### 构建与打包
+
+详见 [BUILD.md](BUILD.md) — 包含环境要求、开发模式、NSIS 打包流程、sharp 跨平台注意事项、故障排查。
 
 ## 配置说明
 
