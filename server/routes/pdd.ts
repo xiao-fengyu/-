@@ -4,8 +4,9 @@
 // ============================================================
 
 import * as express from 'express'
+import type Database from 'better-sqlite3'
 import { PddAdapter } from '../services/platforms/pdd-adapter'
-import { getDatabase, DatabaseService } from '../services/database'
+import { getDatabase } from '../services/database'
 import type { PlatformCredential, PublishProductParams } from '../services/platforms/adapter'
 
 const router = express.Router()
@@ -39,7 +40,7 @@ router.post('/oauth/authorize', async (req, res) => {
     const credential = buildCredential(db, credentialId)
     if (!credential) return res.status(404).json({ error: '未找到凭据' })
 
-    const adapter = new PddAdapter(db)
+    const adapter = new PddAdapter()
     adapter.setCredential(credential)
     const result = await adapter.authenticate(code)
 
@@ -110,7 +111,7 @@ router.get('/categories', async (req, res) => {
     const credential = buildCredential(db, credentialId as string)
     if (!credential) return res.status(404).json({ error: '未找到凭据' })
 
-    const adapter = new PddAdapter(db)
+    const adapter = new PddAdapter()
     adapter.setCredential(credential)
     const categories = await adapter.getCategories(
       parentId ? Number(parentId) : undefined
@@ -134,7 +135,7 @@ router.post('/upload', async (req, res) => {
     const credential = buildCredential(db, credentialId as string)
     if (!credential) return res.status(404).json({ error: '未找到凭据' })
 
-    const adapter = new PddAdapter(db)
+    const adapter = new PddAdapter()
     adapter.setCredential(credential)
     const result = await adapter.uploadImage(imagePath as string, imageName as string)
 
@@ -158,7 +159,7 @@ router.post('/publish', async (req, res) => {
     const credential = buildCredential(db, credentialId as string)
     if (!credential) return res.status(404).json({ error: '未找到凭据' })
 
-    const adapter = new PddAdapter(db)
+    const adapter = new PddAdapter()
     adapter.setCredential(credential)
     const result = await adapter.publishProduct(publishParams as PublishProductParams)
 
@@ -200,7 +201,7 @@ router.get('/products/:goodsId', async (req, res) => {
     const credential = buildCredential(db, credentialId as string)
     if (!credential) return res.status(404).json({ error: '未找到凭据' })
 
-    const adapter = new PddAdapter(db)
+    const adapter = new PddAdapter()
     adapter.setCredential(credential)
     const product = await adapter.getProductInfo(goodsId)
 
@@ -220,7 +221,7 @@ router.get('/products', async (req, res) => {
     const credential = buildCredential(db, credentialId as string)
     if (!credential) return res.status(404).json({ error: '未找到凭据' })
 
-    const adapter = new PddAdapter(db)
+    const adapter = new PddAdapter()
     adapter.setCredential(credential)
     const products = await adapter.getProducts(Number(page), Number(pageSize))
 

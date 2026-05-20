@@ -18,7 +18,7 @@ import {
   getTemplatesByCategory,
   getCategories,
 } from '../services/image-gen/templates'
-import { DatabaseService, getDatabase } from '../services/database'
+import { DatabaseService } from '../services/database'
 
 const router = Router()
 

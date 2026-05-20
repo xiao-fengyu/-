@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  Form, Select, Input, InputNumber, Button, Upload, message,
-  Card, Table, Space, Tag, Modal, TreeSelect, Descriptions,
-  Alert, Spin, Divider, Row, Col,
+  Form, Select, Input, InputNumber, Button, message,
+  Card, Table, Space, Tag, Modal, TreeSelect,
+  Alert, Row, Col,
 } from 'antd'
 import {
-  PlusOutlined, UploadOutlined, SendOutlined, DeleteOutlined,
-  SearchOutlined, ReloadOutlined,
+  PlusOutlined, SendOutlined, DeleteOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons'
-import type { UploadFile } from 'antd/es/upload/interface'
+
 import './Publish.css'
 
 // ============================================================
@@ -70,7 +70,6 @@ export default function PublishPage() {
   const [credentials, setCredentials] = useState<any[]>([])
   const [credLoading, setCredLoading] = useState(false)
   const [selectedImages, setSelectedImages] = useState<string[]>([])
-  const [imageList, setImageList] = useState<UploadFile[]>([])
   const [skus, setSkus] = useState<SkuItem[]>([
     { key: '1', specName: '默认', specValue: '默认规格', price: 0, stock: 0 },
   ])

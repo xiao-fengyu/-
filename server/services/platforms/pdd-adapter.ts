@@ -14,8 +14,7 @@ import type {
   CategoryNode,
   ImageUploadResult,
 } from './adapter'
-import type { DatabaseService } from '../database'
-import { pddSign, buildPddRequest } from '../../utils/pdd-sign'
+import { pddSign } from '../../utils/pdd-sign'
 
 const PDD_GATEWAY = 'https://gw-api.pinduoduo.com/api/router'
 
@@ -23,12 +22,9 @@ export class PddAdapter implements IPlatformAdapter {
   readonly platform = 'pdd'
   readonly name = '拼多多'
 
-  private db: DatabaseService
   private credential: PlatformCredential | null = null
 
-  constructor(db: DatabaseService) {
-    this.db = db
-  }
+  constructor() {}
 
   setCredential(credential: PlatformCredential): void {
     this.credential = credential
@@ -186,7 +182,6 @@ export class PddAdapter implements IPlatformAdapter {
       return {
         success: false,
         error: response.data.error_response.error_desc,
-        errorCode: response.data.error_response.error_code,
       }
     }
 
