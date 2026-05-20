@@ -1,7 +1,141 @@
 .image-generator {
-  max-width: 800px;
+  padding: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
-.image-generator h1 {
-  margin-bottom: 16px;
+.generator-header {
+  margin-bottom: 24px;
+}
+
+.generator-header h1 {
+  margin: 0 0 4px;
+  font-size: 24px;
+}
+
+.generator-header .subtitle {
+  margin: 0;
+  color: #999;
+  font-size: 14px;
+}
+
+.input-card, .result-card, .history-card {
+  border-radius: 8px;
+}
+
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.image-card {
+  position: relative;
+  border: 2px solid #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+}
+
+.image-card:hover {
+  border-color: #1890ff;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.15);
+}
+
+.image-card.selected {
+  border-color: #52c41a;
+  box-shadow: 0 2px 8px rgba(82, 196, 26, 0.2);
+}
+
+.image-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  background: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-wrapper img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.selected-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #52c41a;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.image-info {
+  padding: 8px 12px;
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.image-actions {
+  padding: 0 12px 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.image-actions .ant-btn {
+  flex: 1;
+}
+
+.compliance-result {
+  margin: 0 12px 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.compliance-result.pass {
+  background: #f6ffed;
+  color: #52c41a;
+  border: 1px solid #b7eb8f;
+}
+
+.compliance-result.fail {
+  background: #fff2f0;
+  color: #ff4d4f;
+  border: 1px solid #ffccc7;
+}
+
+.history-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+}
+
+.history-info {
+  text-align: center;
+  font-size: 11px;
+  color: #666;
+  width: 100%;
+}
+
+.history-info .filename {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

@@ -112,6 +112,94 @@ function initializeSchema(database: Database.Database): void {
   `)
 }
 
+// ============================================================
+// 数据库操作封装
+// ============================================================
+
+export interface ImageInsert {
+  product_id: string | null
+  local_path: string
+  url: string
+  type: string
+  provider: string
+  prompt: string
+  status: string
+  width: number
+  height: number
+  file_size: number
+}
+
+export class DatabaseService {
+  private db: Database.Database
+
+  constructor() {
+    this.db = getDatabase()
+  }
+
+  /** 添加图片记录 */
+  addImage(data: ImageInsert): string {
+    const id = `img_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    this.db.prepare(`
+      INSERT INTO images (id, product_id, local_path, url, type, provider, prompt, status, width, height, file_size)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      data.product_id,
+      data.local_path,
+      data.url,
+      data.type,
+      data.provider,
+      data.prompt,
+      data.status,
+      data.width,
+      data.height,
+      data.file_size
+    )
+    return id
+  }
+
+  /** 获取所有图片 */
+  getImages(productId?: string): Array<Record<string, unknown>> {
+    if (productId) {
+      return this.db.prepare('SELECT * FROM images WHERE product_id = ? ORDER BY created_at DESC').all(productId) as Array<Record<string, unknown>>
+    }
+    return this.db.prepare('SELECT * FROM images ORDER BY created_at DESC').all() as Array<Record<string, unknown>>
+  }
+
+  /** 更新图片状态 */
+  updateImageStatus(imageId: string, status: string): void {
+    this.db.prepare('UPDATE images SET status = ? WHERE id = ?').run(status, imageId)
+  }
+
+  /** 保存提供商配置 */
+  saveProvider(config: {
+    id: string; name: string; type: string; endpoint: string;
+    api_key: string; model: string; max_images: number;
+    default_params: string; is_default: number;
+  }): void {
+    this.db.prepare(`
+      INSERT OR REPLACE INTO image_providers (id, name, type, endpoint, api_key, model, max_images, default_params, is_default)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      config.id, config.name, config.type, config.endpoint,
+      config.api_key, config.model, config.max_images,
+      config.default_params, config.is_default
+    )
+  }
+
+  /** 获取所有提供商 */
+  getProviders(): Array<Record<string, unknown>> {
+    return this.db.prepare('SELECT * FROM image_providers ORDER BY created_at DESC').all() as Array<Record<string, unknown>>
+  }
+
+  /** 添加操作日志 */
+  addLog(action: string, productId: string | null, platform: string | null, status: string, message: string): void {
+    this.db.prepare(
+      'INSERT INTO operation_logs (action, product_id, platform, status, message) VALUES (?, ?, ?, ?, ?)'
+    ).run(action, productId, platform, status, message)
+  }
+}
+
 export function closeDatabase(): void {
   if (db) {
     db.close()
