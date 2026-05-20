@@ -1,0 +1,49 @@
+.app-layout {
+  min-height: 100vh;
+}
+
+.app-sider {
+  position: relative;
+}
+
+.app-logo {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin-top: 12px;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  top: 8px;
+  right: -16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: all 0.2s;
+}
+
+.sidebar-toggle:hover {
+  background: #1677ff;
+  border-color: #1677ff;
+  color: #fff;
+}
+
+.app-content {
+  padding: 20px;
+  background: #f0f2f5;
+  min-height: calc(100vh - 0px);
+  overflow-y: auto;
+}

@@ -5,6 +5,7 @@ package-lock.json
 # 构建输出
 dist/
 out/
+dist-electron/
 
 # 运行时数据
 data/

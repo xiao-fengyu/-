@@ -1,0 +1,21 @@
+.dashboard {
+  max-width: 1200px;
+}
+
+.dashboard h1 {
+  margin-bottom: 24px;
+}
+
+.dashboard-stats {
+  margin-bottom: 24px;
+}
+
+.dashboard-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.dashboard-recent {
+  min-height: 300px;
+}
