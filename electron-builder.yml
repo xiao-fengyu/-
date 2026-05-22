@@ -7,13 +7,38 @@ files:
   - dist/**/*
   - dist-electron/**/*
   - server/**/*
-  - node_modules/**/*
+  - '!node_modules/**/{.cache,*.d.ts,src,test,tests,__tests__}'
+  - '!**/{.DS_Store,*.log,.env}'
+asarUnpack:
+  - 'node_modules/better-sqlite3/**'
+  - 'node_modules/sharp/**'
+  - 'node_modules/sqlite3/**'
+extraResources:
+  - from: server
+    to: server
+    filter:
+      - '**/*'
+      - '!**/*.test.*'
 win:
   target:
-    - nsis
+    - target: nsis
+      arch:
+        - x64
   icon: resources/icon.png
+  requestedExecutionLevel: asInvoker
 nsis:
   oneClick: false
   perMachine: true
   allowToChangeInstallationDirectory: true
   deleteAppDataOnUninstall: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: e-platform
+  installerIcon: resources/icon.png
+  uninstallerIcon: resources/icon.png
+mac:
+  target: dmg
+  icon: resources/icon.png
+linux:
+  target: AppImage
+  icon: resources/icon.png

@@ -71,7 +71,7 @@ e-platform/
 | 阶段三：平台适配层 — 拼多多 | ✅ 已完成 | MD5 签名 + OAuth + 类目查询 + 图片上传 + 商品发布 |
 | 阶段四：完整工作流串联 | ✅ 已完成 | 最小闭环 |
 | 阶段五：批量模式 | ✅ 已完成 | 批量导入/生成/确认/发布 + 队列管理 + 失败重试 |
-| 阶段六：测试 & 打包发布 | 📋 待开始 | Windows 安装包 |
+| 阶段六：测试 & 打包发布 | ✅ 已完成 | TypeScript 编译/构建通过 + 原生模块重建 + 打包管线验证 + 提供商测试脚本 + 使用说明书 |
 
 ### 已完成详情
 - [x] 项目骨架搭建（Electron + React + TypeScript + Vite）
@@ -133,7 +133,25 @@ e-platform/
   - 自动轮询（2s 间隔）实时刷新进度
 - [x] TypeScript 编译零错误
 
+### 阶段六：测试 & 打包发布 ✅
+- [x] TypeScript 编译零验证通过
+- [x] vite build 前端构建通过
+- [x] @electron/rebuild 安装 + better-sqlite3 原生模块重建
+- [x] electron-builder.yml 优化（asarUnpack、extraResources、NSIS 配置）
+- [x] package.json scripts 完善（electron:rebuild / electron:package / electron:package:win / postinstall）
+- [x] 打包管线验证：`electron-builder --linux dir` 成功产出完整应用目录
+  - app.asar（110MB，React 前端 + Electron 主进程）
+  - app.asar.unpacked（better-sqlite3 + sharp 原生模块）
+  - server 目录完整打包
+- [x] Windows NSIS 构建文档（BUILD.md 补充一键构建流程）
+- [x] 提供商连通性测试脚本 `scripts/test_providers.py`
+- [x] 用户使用说明书 `docs/USER_GUIDE.md`
+
+> **注意**：服务器外网阻断导致 NSIS/deb/AppImage 无法生成安装包文件，
+> 但打包管线已完全验证。在 Windows 开发机上运行 `npm run electron:package:win` 即可一键生成 .exe 安装包。
+
 详见 [BUILD.md](BUILD.md) — 包含环境要求、开发模式、NSIS 打包流程、sharp 跨平台注意事项、故障排查。
+详见 [docs/USER_GUIDE.md](docs/USER_GUIDE.md) — 完整用户使用说明书。
 
 ## 配置说明
 

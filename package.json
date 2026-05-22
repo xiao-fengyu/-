@@ -1,19 +1,27 @@
 {
   "name": "e-platform",
   "version": "1.0.0",
-  "description": "AI驱动的商品图片生成 + 多平台一键上架桌面客户端",
+  "description": "AI\u9a71\u52a8\u7684\u5546\u54c1\u56fe\u7247\u751f\u6210 + \u591a\u5e73\u53f0\u4e00\u952e\u4e0a\u67b6\u684c\u9762\u5ba2\u6237\u7aef",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "electron:build": "vite build && electron-builder"
+    "electron:build": "vite build && electron-builder",
+    "electron:rebuild": "electron-rebuild",
+    "electron:package": "npm run build && electron-builder",
+    "electron:package:win": "npm run build && electron-builder --win --x64",
+    "postinstall": "electron-rebuild || true"
   },
   "keywords": [],
-  "author": "",
+  "author": {
+    "name": "e-platform Team",
+    "email": "admin@eplatform.app"
+  },
   "license": "MIT",
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.6",
     "@types/multer": "^2.1.0",
