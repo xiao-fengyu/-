@@ -112,6 +112,43 @@ function initializeSchema(database: Database.Database): void {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `)
+
+  // 批量任务表
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS batch_tasks (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      platform TEXT,
+      credential_id TEXT,
+      provider_config TEXT,
+      status TEXT DEFAULT 'importing',
+      total_items INTEGER DEFAULT 0,
+      completed_items INTEGER DEFAULT 0,
+      failed_items INTEGER DEFAULT 0,
+      import_file_path TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+
+  // 批量任务条目表
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS batch_items (
+      id TEXT PRIMARY KEY,
+      batch_task_id TEXT REFERENCES batch_tasks(id),
+      product_id TEXT REFERENCES products(id),
+      row_number INTEGER,
+      title TEXT,
+      description TEXT,
+      price DECIMAL(10,2),
+      stock INTEGER DEFAULT 100,
+      category_id TEXT,
+      image_path TEXT,
+      status TEXT DEFAULT 'imported',
+      error_message TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
 }
 
 /** 数据库迁移（对已存在的库添加新字段） */
@@ -121,6 +158,58 @@ function migrateSchema(database: Database.Database): void {
     database.exec(`ALTER TABLE products ADD COLUMN draft_data TEXT`)
   } catch {
     // 字段已存在，忽略
+  }
+
+  // products 表添加 batch_task_id 字段
+  try {
+    database.exec(`ALTER TABLE products ADD COLUMN batch_task_id TEXT`)
+  } catch {
+    // 字段已存在，忽略
+  }
+
+  // 批量任务表迁移
+  try {
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS batch_tasks (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        platform TEXT,
+        credential_id TEXT,
+        provider_config TEXT,
+        status TEXT DEFAULT 'importing',
+        total_items INTEGER DEFAULT 0,
+        completed_items INTEGER DEFAULT 0,
+        failed_items INTEGER DEFAULT 0,
+        import_file_path TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+  } catch {
+    // 表已存在，忽略
+  }
+
+  // 批量任务条目表迁移
+  try {
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS batch_items (
+        id TEXT PRIMARY KEY,
+        batch_task_id TEXT REFERENCES batch_tasks(id),
+        product_id TEXT REFERENCES products(id),
+        row_number INTEGER,
+        title TEXT,
+        description TEXT,
+        price DECIMAL(10,2),
+        stock INTEGER DEFAULT 100,
+        category_id TEXT,
+        image_path TEXT,
+        status TEXT DEFAULT 'imported',
+        error_message TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+  } catch {
+    // 表已存在，忽略
   }
 }
 
@@ -169,6 +258,28 @@ export interface DraftData {
   skus?: Array<Record<string, unknown>>
   shipmentLimitSecond?: number
   extra?: Record<string, unknown>
+}
+
+export interface BatchTaskInsert {
+  id: string
+  name: string
+  platform?: string
+  credential_id?: string
+  provider_config?: string
+  status?: string
+  total_items?: number
+  import_file_path?: string
+}
+
+export interface BatchItemInsert {
+  id: string
+  batch_task_id: string
+  row_number: number
+  title: string
+  description?: string
+  price?: number
+  stock?: number
+  category_id?: string
 }
 
 // ============================================================
@@ -440,6 +551,107 @@ export class DatabaseService {
       providers: this.db.prepare('SELECT * FROM image_providers').all(),
       credentials: this.db.prepare('SELECT id, platform, client_id, client_secret, access_token, refresh_token, expires_at, shop_name, created_at FROM platform_credentials').all(),
       logs: this.db.prepare('SELECT * FROM operation_logs').all(),
+    }
+  }
+
+  /** ===== 批量任务 ===== */
+
+  createBatchTask(data: BatchTaskInsert): string {
+    this.db.prepare(`
+      INSERT INTO batch_tasks (id, name, platform, credential_id, provider_config, status, total_items, import_file_path)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      data.id,
+      data.name,
+      data.platform || null,
+      data.credential_id || null,
+      data.provider_config || null,
+      data.status || 'importing',
+      data.total_items || 0,
+      data.import_file_path || null,
+    )
+    return data.id
+  }
+
+  getBatchTask(id: string): Record<string, unknown> | undefined {
+    return this.db.prepare('SELECT * FROM batch_tasks WHERE id = ?').get(id) as Record<string, unknown> | undefined
+  }
+
+  listBatchTasks(): Array<Record<string, unknown>> {
+    return this.db.prepare('SELECT * FROM batch_tasks ORDER BY created_at DESC').all() as Array<Record<string, unknown>>
+  }
+
+  updateBatchTaskStatus(id: string, status: string, completedItems?: number, failedItems?: number): void {
+    const fields: string[] = ['status = ?', 'updated_at = CURRENT_TIMESTAMP']
+    const values: unknown[] = [status, id]
+
+    if (completedItems !== undefined) { fields.push('completed_items = ?'); values.push(completedItems) }
+    if (failedItems !== undefined) { fields.push('failed_items = ?'); values.push(failedItems) }
+
+    this.db.prepare(`UPDATE batch_tasks SET ${fields.join(', ')} WHERE id = ?`).run(...values)
+  }
+
+  deleteBatchTask(id: string): void {
+    const tx = this.db.transaction(() => {
+      this.db.prepare('DELETE FROM batch_items WHERE batch_task_id = ?').run(id)
+      this.db.prepare('DELETE FROM batch_tasks WHERE id = ?').run(id)
+    })
+    tx()
+  }
+
+  /** ===== 批量任务条目 ===== */
+
+  addBatchItem(data: BatchItemInsert): string {
+    this.db.prepare(`
+      INSERT INTO batch_items (id, batch_task_id, row_number, title, description, price, stock, category_id, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'imported')
+    `).run(
+      data.id,
+      data.batch_task_id,
+      data.row_number,
+      data.title || null,
+      data.description || null,
+      data.price || null,
+      data.stock || 100,
+      data.category_id || null,
+    )
+    return data.id
+  }
+
+  getBatchItems(batchTaskId: string): Array<Record<string, unknown>> {
+    return this.db.prepare('SELECT * FROM batch_items WHERE batch_task_id = ? ORDER BY row_number').all(batchTaskId) as Array<Record<string, unknown>>
+  }
+
+  updateBatchItemStatus(id: string, status: string, extra?: { productId?: string; imagePath?: string; errorMessage?: string }): void {
+    const fields: string[] = ['status = ?']
+    const values: unknown[] = [status, id]
+
+    if (extra?.productId !== undefined) { fields.push('product_id = ?'); values.push(extra.productId) }
+    if (extra?.imagePath !== undefined) { fields.push('image_path = ?'); values.push(extra.imagePath) }
+    if (extra?.errorMessage !== undefined) { fields.push('error_message = ?'); values.push(extra.errorMessage) }
+
+    this.db.prepare(`UPDATE batch_items SET ${fields.join(', ')} WHERE id = ?`).run(...values)
+  }
+
+  getBatchItemsByStatus(batchTaskId: string, status: string): Array<Record<string, unknown>> {
+    return this.db.prepare('SELECT * FROM batch_items WHERE batch_task_id = ? AND status = ? ORDER BY row_number').all(batchTaskId, status) as Array<Record<string, unknown>>
+  }
+
+  getBatchItemCount(batchTaskId: string): { total: number; imported: number; generated: number; confirmed: number; published: number; failed: number } {
+    const total = this.db.prepare('SELECT COUNT(*) as cnt FROM batch_items WHERE batch_task_id = ?').get(batchTaskId) as Record<string, unknown>
+    const imported = this.db.prepare('SELECT COUNT(*) as cnt FROM batch_items WHERE batch_task_id = ? AND status = ?').get([batchTaskId, 'imported']) as Record<string, unknown>
+    const generated = this.db.prepare('SELECT COUNT(*) as cnt FROM batch_items WHERE batch_task_id = ? AND status = ?').get([batchTaskId, 'generated']) as Record<string, unknown>
+    const confirmed = this.db.prepare('SELECT COUNT(*) as cnt FROM batch_items WHERE batch_task_id = ? AND status = ?').get([batchTaskId, 'confirmed']) as Record<string, unknown>
+    const published = this.db.prepare('SELECT COUNT(*) as cnt FROM batch_items WHERE batch_task_id = ? AND status = ?').get([batchTaskId, 'published']) as Record<string, unknown>
+    const failed = this.db.prepare('SELECT COUNT(*) as cnt FROM batch_items WHERE batch_task_id = ? AND status = ?').get([batchTaskId, 'failed']) as Record<string, unknown>
+
+    return {
+      total: Number(total.cnt),
+      imported: Number(imported.cnt),
+      generated: Number(generated.cnt),
+      confirmed: Number(confirmed.cnt),
+      published: Number(published.cnt),
+      failed: Number(failed.cnt),
     }
   }
 }
