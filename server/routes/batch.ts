@@ -10,6 +10,7 @@ import * as XLSX from 'xlsx'
 import { DatabaseService } from '../services/database'
 import { startBatchGeneration, getGenerationStatus, isGenerating } from '../services/batch-generator'
 import type { ImageProviderConfig } from '../services/image-gen'
+import { startBatchPublish, getPublishStatus } from '../services/batch-publisher'
 
 const router = Router()
 
@@ -345,6 +346,7 @@ router.get('/tasks/:id/status', (req, res) => {
     }
 
     const genStatus = getGenerationStatus(req.params.id)
+    const pubStatus = getPublishStatus(req.params.id)
     const counts = db.getBatchItemCount(req.params.id)
 
     res.json({
@@ -352,11 +354,135 @@ router.get('/tasks/:id/status', (req, res) => {
       data: {
         taskStatus: task.status,
         generation: genStatus,
+        publish: pubStatus,
         counts,
       },
     })
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+/** 批量确认已生成的条目 */
+router.post('/tasks/:id/confirm', (req, res) => {
+  try {
+    const db = new DatabaseService()
+    const task = db.getBatchTask(req.params.id)
+    if (!task) {
+      return res.status(404).json({ success: false, error: '任务不存在' })
+    }
+
+    const { itemIds } = req.body
+
+    // 如果指定了 itemIds，只确认这些；否则确认所有 generated 状态的条目
+    if (itemIds && Array.isArray(itemIds) && itemIds.length > 0) {
+      for (const itemId of itemIds) {
+        db.updateBatchItemStatus(String(itemId), 'confirmed')
+      }
+    } else {
+      const generatedItems = db.getBatchItemsByStatus(req.params.id, 'generated')
+      for (const item of generatedItems) {
+        db.updateBatchItemStatus(String(item.id), 'confirmed')
+      }
+    }
+
+    db.addLog('batch_confirm', req.params.id, null, 'success', '批量确认完成')
+
+    res.json({ success: true, message: '已确认' })
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+/** 触发批量发布 */
+router.post('/tasks/:id/publish', async (req, res) => {
+  try {
+    const db = new DatabaseService()
+    const task = db.getBatchTask(req.params.id)
+    if (!task) {
+      return res.status(404).json({ success: false, error: '任务不存在' })
+    }
+
+    const { credentialId, maxConcurrency } = req.body
+    if (!credentialId) {
+      return res.status(400).json({ success: false, error: '缺少 credentialId' })
+    }
+
+    const concurrency = Math.min(Math.max(parseInt(maxConcurrency) || 1, 1), 3)
+
+    await startBatchPublish(req.params.id, credentialId, concurrency)
+
+    res.json({
+      success: true,
+      message: '批量发布已启动',
+      data: { taskId: req.params.id },
+    })
+  } catch (err: any) {
+    console.error('[批量发布启动失败]', err.message)
+    res.status(400).json({ success: false, error: err.message })
+  }
+})
+
+/** 重试失败条目 */
+router.post('/tasks/:id/retry-failed', async (req, res) => {
+  try {
+    const db = new DatabaseService()
+    const task = db.getBatchTask(req.params.id)
+    if (!task) {
+      return res.status(404).json({ success: false, error: '任务不存在' })
+    }
+
+    const { action } = req.body // 'generate' | 'publish'
+    if (!action || !['generate', 'publish'].includes(action)) {
+      return res.status(400).json({ success: false, error: 'action 必须为 generate 或 publish' })
+    }
+
+    const failedItems = db.getBatchItemsByStatus(req.params.id, 'failed')
+    const publishFailedItems = db.getBatchItemsByStatus(req.params.id, 'publish_failed')
+
+    if (action === 'generate') {
+      if (failedItems.length === 0) {
+        return res.status(400).json({ success: false, error: '没有生成失败的条目' })
+      }
+      for (const item of failedItems) {
+        db.updateBatchItemStatus(String(item.id), 'imported')
+      }
+
+      const providerConfigStr = task.provider_config
+      if (!providerConfigStr) {
+        return res.status(400).json({ success: false, error: '任务缺少 providerConfig' })
+      }
+
+      const providerConfig: ImageProviderConfig = typeof providerConfigStr === 'string'
+        ? JSON.parse(providerConfigStr)
+        : providerConfigStr as unknown as ImageProviderConfig
+
+      await startBatchGeneration(req.params.id, providerConfig, 3)
+
+      res.json({ success: true, message: `已重新生成 ${failedItems.length} 条` })
+    } else {
+      // publish retry
+      const allFailed = [...failedItems, ...publishFailedItems]
+      if (allFailed.length === 0) {
+        return res.status(400).json({ success: false, error: '没有发布失败的条目' })
+      }
+
+      const credentialId = task.credential_id
+      if (!credentialId) {
+        return res.status(400).json({ success: false, error: '任务缺少 credentialId' })
+      }
+
+      for (const item of allFailed) {
+        db.updateBatchItemStatus(String(item.id), 'confirmed')
+      }
+
+      await startBatchPublish(req.params.id, String(credentialId), 1)
+
+      res.json({ success: true, message: `已重新发布 ${allFailed.length} 条` })
+    }
+  } catch (err: any) {
+    console.error('[重试失败]', err.message)
+    res.status(400).json({ success: false, error: err.message })
   }
 })
 
