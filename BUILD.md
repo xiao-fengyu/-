@@ -45,11 +45,27 @@ npm run build
 
 产出：`dist/` 目录（静态文件，不包含 Electron 主进程）。
 
-### Electron 打包（Windows 安装包）
+### Electron 打包
+
+#### Linux AppImage（当前服务器已验证通过 ✅）
+
+```bash
+# 构建前端 + electron-builder 打包 AppImage
+cd e-platform
+ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/" npx electron-builder --linux appimage
+```
+
+产出：`release/e-platform-1.0.0.AppImage`（~143MB）
+
+AppImage 是自包含的可执行文件，无需安装，双击即可运行。适用于所有主流 Linux 发行版。
+
+#### Windows NSIS 安装包
 
 ```bash
 # 构建前端 + electron-builder 打包 NSIS 安装包
 npm run electron:build
+# 或
+npx electron-builder --win nsis
 ```
 
 产出：`release/` 目录下生成 `.exe` 安装包。
@@ -75,7 +91,18 @@ server/**/*            # 本地后端服务
 node_modules/**/*      # 运行时依赖（electron-builder 会自动裁剪 devDependencies）
 ```
 
-> **注意**：`node_modules` 中的开发依赖（devDependencies）不会被打包进安装包，electron-builder 只包含 `dependencies`。
+### 网络环境
+
+**服务器外网 HTTP/HTTPS 完全阻断**，SSH 通道可用。
+
+| 场景 | 状态 | 说明 |
+|------|------|------|
+| Electron 二进制下载 | ✅ 可缓存 | 通过 `ELECTRON_MIRROR` 指向国内镜像源 |
+| AppImage 构建 | ✅ 成功 | 工具已缓存 `~/.cache/electron-builder/appimage/` |
+| deb 构建 | ❌ 失败 | fpm 工具需要从 GitHub 下载，HTTP 阻断 |
+| Windows NSIS | ❌ 失败 | 需要 wine + GitHub 下载 NSIS 工具 |
+
+**Windows 安装包构建建议**：在本地 Windows 开发机上执行 `npm run electron:package:win`，网络畅通可一键构建。
 
 ---
 
@@ -126,6 +153,8 @@ npm run electron:build -- --linux
 | 问题 | 原因 | 解决 |
 |------|------|------|
 | `npm install` 卡在 electron 安装 | GitHub CDN 下载超时（`socket hang up`） | 使用国内镜像：`ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ npm install` |
+| AppImage 构建失败 | 工具未缓存 | 首次构建需要下载 appimage-12.0.1 工具；HTTP 阻断时无法下载 |
+| electron-builder 下载工具 EOF | 外网 HTTP 阻断 | AppImage 工具已缓存可用；deb/NSIS 需在有网络的机器上构建 |
 | `npm install` 报错 `sharp` | 缺少 C++ 构建工具 | 安装 Visual Studio Build Tools（Windows）或 `build-essential`（Linux） |
 | 启动后白屏 | 前端构建失败 | 运行 `npm run build` 检查是否有 TS 错误 |
 | 生成图片失败 | API Key 未配置 | 检查 `config.json` 中的 `apiKey` 字段 |
