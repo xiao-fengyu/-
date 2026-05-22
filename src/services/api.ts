@@ -140,4 +140,80 @@ export async function platformAuth(platform: string, credentialId: string, code?
   return res.data
 }
 
+// ===== 批量任务 =====
+
+/** 导入批量任务文件 */
+export async function importBatch(file: File, params?: {
+  platform?: string
+  credentialId?: string
+  providerConfig?: string
+}) {
+  const FormData = (await import('form-data')).default
+  const formData = new FormData()
+  formData.append('file', file)
+
+  if (params?.platform) formData.append('platform', params.platform)
+  if (params?.credentialId) formData.append('credentialId', params.credentialId)
+  if (params?.providerConfig) formData.append('providerConfig', params.providerConfig)
+
+  const res = await api.post('/api/batch/import', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data
+}
+
+/** 获取批量任务列表 */
+export async function fetchBatchTasks() {
+  const res = await api.get('/api/batch/tasks')
+  return res.data
+}
+
+/** 获取单个批量任务详情 */
+export async function fetchBatchTask(taskId: string) {
+  const res = await api.get(`/api/batch/tasks/${taskId}`)
+  return res.data
+}
+
+/** 删除批量任务 */
+export async function deleteBatchTask(taskId: string) {
+  const res = await api.delete(`/api/batch/tasks/${taskId}`)
+  return res.data
+}
+
+/** 触发批量生成 */
+export async function startBatchGeneration(taskId: string, providerConfig: Record<string, unknown>, maxConcurrency?: number) {
+  const res = await api.post(`/api/batch/tasks/${taskId}/generate`, {
+    providerConfig,
+    maxConcurrency,
+  })
+  return res.data
+}
+
+/** 查询批量生成/发布进度 */
+export async function fetchBatchStatus(taskId: string) {
+  const res = await api.get(`/api/batch/tasks/${taskId}/status`)
+  return res.data
+}
+
+/** 批量确认已生成条目 */
+export async function confirmBatch(taskId: string, itemIds?: string[]) {
+  const res = await api.post(`/api/batch/tasks/${taskId}/confirm`, { itemIds })
+  return res.data
+}
+
+/** 触发批量发布 */
+export async function startBatchPublish(taskId: string, credentialId: string, maxConcurrency?: number) {
+  const res = await api.post(`/api/batch/tasks/${taskId}/publish`, {
+    credentialId,
+    maxConcurrency,
+  })
+  return res.data
+}
+
+/** 重试失败条目 */
+export async function retryFailed(taskId: string, action: 'generate' | 'publish') {
+  const res = await api.post(`/api/batch/tasks/${taskId}/retry-failed`, { action })
+  return res.data
+}
+
 export default api

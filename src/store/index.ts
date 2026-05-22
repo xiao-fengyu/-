@@ -21,6 +21,60 @@ export interface PlatformCredential {
   isConnected: boolean
 }
 
+// ============================================================
+// 批量任务类型定义
+// ============================================================
+
+export interface BatchTask {
+  id: string
+  name: string
+  platform: string
+  credential_id: string
+  provider_config: string
+  status: string
+  total_items: number
+  completed_items: number
+  failed_items: number
+  import_file_path: string
+  created_at: string
+  updated_at: string
+  // 附加统计（从 counts 接口获取）
+  total?: number
+  imported?: number
+  generated?: number
+  confirmed?: number
+  published?: number
+  failed?: number
+}
+
+export interface BatchItem {
+  id: string
+  batch_task_id: string
+  product_id: string
+  row_number: number
+  title: string
+  description: string
+  price: number
+  stock: number
+  category_id: string
+  image_path: string
+  status: string
+  error_message: string
+  created_at: string
+}
+
+export interface ParsedItem {
+  title: string
+  description: string
+  price?: number
+  stock?: number
+  category_id?: string
+}
+
+// ============================================================
+// Store 接口
+// ============================================================
+
 interface AppState {
   // 侧边栏
   sidebarCollapsed: boolean
@@ -39,6 +93,17 @@ interface AppState {
   addPlatformCredential: (cred: Omit<PlatformCredential, 'id' | 'isConnected'>) => void
   updatePlatformCredential: (id: string, updates: Partial<PlatformCredential>) => void
   deletePlatformCredential: (id: string) => void
+
+  // 批量任务
+  batchTasks: BatchTask[]
+  currentTask: BatchTask | null
+  currentTaskItems: BatchItem[]
+  importPreview: ParsedItem[] | null
+  setBatchTasks: (tasks: BatchTask[]) => void
+  setCurrentTask: (task: BatchTask | null) => void
+  setCurrentTaskItems: (items: BatchItem[]) => void
+  setImportPreview: (preview: ParsedItem[] | null) => void
+  clearBatchState: () => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -79,4 +144,15 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => ({
       platformCredentials: state.platformCredentials.filter((c) => c.id !== id),
     })),
+
+  // ===== 批量任务 =====
+  batchTasks: [],
+  currentTask: null,
+  currentTaskItems: [],
+  importPreview: null,
+  setBatchTasks: (tasks) => set({ batchTasks: tasks }),
+  setCurrentTask: (task) => set({ currentTask: task }),
+  setCurrentTaskItems: (items) => set({ currentTaskItems: items }),
+  setImportPreview: (preview) => set({ importPreview: preview }),
+  clearBatchState: () => set({ currentTask: null, currentTaskItems: [], importPreview: null }),
 }))
