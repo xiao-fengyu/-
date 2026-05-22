@@ -70,7 +70,7 @@ e-platform/
 | 阶段二：AI 图片生成引擎 | ✅ 已完成 | 多提供商接入 + Prompt 模板 + Sharp 图片处理 |
 | 阶段三：平台适配层 — 拼多多 | ✅ 已完成 | MD5 签名 + OAuth + 类目查询 + 图片上传 + 商品发布 |
 | 阶段四：完整工作流串联 | ✅ 已完成 | 最小闭环 |
-| 阶段五：批量模式 | 📋 待开始 | 批量导入/生成/发布 |
+| 阶段五：批量模式 | ✅ 已完成 | 批量导入/生成/确认/发布 + 队列管理 + 失败重试 |
 | 阶段六：测试 & 打包发布 | 📋 待开始 | Windows 安装包 |
 
 ### 已完成详情
@@ -110,7 +110,28 @@ e-platform/
 ### 阶段三：平台适配层 — 拼多多 ✅
 - [x] IPlatformAdapter 统一接口定义
 
-### 构建与打包
+### 阶段五：批量模式 ✅
+- [x] 数据库迁移：batch_tasks + batch_items 表，products.batch_task_id 字段
+- [x] xlsx (SheetJS) + multer 依赖安装
+- [x] 批量导入路由：POST /api/batch/import（Excel/CSV 解析、列映射、校验）
+- [x] 批量任务 CRUD 路由：GET/DELETE /api/batch/tasks/:id
+- [x] 批量生成引擎：server/services/batch-generator.ts
+  - 并发队列管理（maxConcurrency 1-10 可调）
+  - withRetry 自动重试（最多 3 次，指数退避）
+  - 单条生成：AI → 下载/保存 → 合规检查 → 创建商品+图片记录
+  - POST /api/batch/tasks/:id/generate + GET /api/batch/tasks/:id/status
+- [x] 批量发布服务：server/services/batch-publisher.ts
+  - 逐条发布到平台，1s 延迟防限流
+  - POST /api/batch/tasks/:id/publish
+- [x] 批量确认：POST /api/batch/tasks/:id/confirm
+- [x] 重试失败：POST /api/batch/tasks/:id/retry-failed（generate/publish）
+- [x] Zustand Store 扩展：BatchTask / BatchItem / ParsedItem 类型
+- [x] 前端 API 函数扩展：importBatch / fetchBatchTasks / startBatchGeneration / confirmBatch / startBatchPublish / retryFailed
+- [x] 批量任务页面完整实现：导入 → 生成 → 确认 → 发布 三步流程
+  - 任务列表（进度条、状态标签）
+  - 任务详情（统计面板、条目表格 + 图片预览）
+  - 自动轮询（2s 间隔）实时刷新进度
+- [x] TypeScript 编译零错误
 
 详见 [BUILD.md](BUILD.md) — 包含环境要求、开发模式、NSIS 打包流程、sharp 跨平台注意事项、故障排查。
 
