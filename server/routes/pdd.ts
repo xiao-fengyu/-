@@ -31,7 +31,102 @@ function buildCredential(db: Database.Database, credentialId: string): PlatformC
   }
 }
 
-// ===== OAuth 授权 =====
+// ===== 获取 OAuth 授权 URL =====
+router.get('/oauth/url', (req, res) => {
+  try {
+    const { credentialId } = req.query
+    if (!credentialId) return res.status(400).json({ error: '缺少 credentialId' })
+
+    const db = getDatabase()
+    const credential = buildCredential(db, credentialId as string)
+    if (!credential) return res.status(404).json({ error: '未找到凭据' })
+
+    const adapter = new PddAdapter()
+    adapter.setCredential(credential)
+
+    // 使用当前服务器的回调地址
+    const port = process.env.SERVER_PORT || '3001'
+    const redirectUri = `http://127.0.0.1:${port}/api/pdd/oauth/callback`
+    const url = adapter.getOAuthUrl(redirectUri)
+
+    res.json({ success: true, url, redirectUri })
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || '获取授权 URL 失败' })
+  }
+})
+
+// ===== OAuth 回调 =====
+router.get('/oauth/callback', async (req, res) => {
+  try {
+    const { code, state, error, error_description } = req.query
+
+    if (error) {
+      return res.send(`
+        <html><body style="font-family:sans-serif;text-align:center;padding:60px 20px;">
+          <h2>授权失败</h2>
+          <p>${error_description || error}</p>
+          <p>您可以关闭此页面。</p>
+        </body></html>
+      `)
+    }
+
+    if (!code) {
+      return res.status(400).send('<html><body style="font-family:sans-serif;text-align:center;padding:60px 20px;"><h2>缺少授权码</h2></body></html>')
+    }
+
+    // 从 state 中提取 credentialId
+    const credentialId = state || (req.query.credentialId as string)
+    if (!credentialId) {
+      return res.send(`
+        <html><body style="font-family:sans-serif;text-align:center;padding:60px 20px;">
+          <h2>授权成功但无法关联凭据</h2>
+          <p>授权码: ${code}</p>
+          <p>请在应用中手动配置此授权码。</p>
+        </body></html>
+      `)
+    }
+
+    const db = getDatabase()
+    const credential = buildCredential(db, credentialId as string)
+    if (!credential) {
+      return res.send(`<html><body style="font-family:sans-serif;text-align:center;padding:60px 20px;"><h2>未找到凭据: ${credentialId}</h2></body></html>`)
+    }
+
+    const adapter = new PddAdapter()
+    adapter.setCredential(credential)
+    const result = await adapter.authenticate(code as string)
+
+    // 保存 token
+    db.prepare(`
+      UPDATE platform_credentials SET access_token = ?, refresh_token = ?,
+        expires_at = ?, shop_name = ? WHERE id = ?
+    `).run(
+      result.accessToken,
+      result.refreshToken || null,
+      result.expiresAt?.toISOString() || null,
+      result.shopName || null,
+      credentialId
+    )
+
+    res.send(`
+      <html><body style="font-family:sans-serif;text-align:center;padding:60px 20px;">
+        <h2>✅ 授权成功！</h2>
+        <p>店铺: ${result.shopName || '未知'}</p>
+        <p>此页面可以关闭。</p>
+        <script>setTimeout(() => window.close(), 3000)</script>
+      </body></html>
+    `)
+  } catch (error: any) {
+    res.send(`
+      <html><body style="font-family:sans-serif;text-align:center;padding:60px 20px;">
+        <h2>❌ 授权失败</h2>
+        <p>${error.message || '未知错误'}</p>
+      </body></html>
+    `)
+  }
+})
+
+// ===== OAuth 授权（手动模式：前端传 code） =====
 router.post('/oauth/authorize', async (req, res) => {
   try {
     const { credentialId, code } = req.body

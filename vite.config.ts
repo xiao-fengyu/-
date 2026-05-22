@@ -35,4 +35,13 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  // 开发环境代理：将 /api 请求转发到后端
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:3001',
+        changeOrigin: true,
+      },
+    },
+  },
 })

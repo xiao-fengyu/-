@@ -3,6 +3,7 @@ import { Card, Row, Col, Statistic, Button, Table, Tag, Empty, Spin } from 'antd
 import { PictureOutlined, CloudUploadOutlined, ShopOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import './Dashboard.css'
+import { API_BASE } from '../../services/api'
 
 // ============================================================
 // 类型
@@ -26,10 +27,8 @@ interface PublishLog {
   created_at: string
 }
 
-const API = 'http://127.0.0.1:14714'
-
 async function api<T>(path: string): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
   })
   const data = await res.json()

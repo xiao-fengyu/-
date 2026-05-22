@@ -39,6 +39,22 @@ export class PddAdapter implements IPlatformAdapter {
   }
 
   /**
+   * 获取 OAuth 授权 URL
+   * 拼多多 OAuth 2.0 授权页面
+   */
+  getOAuthUrl(redirectUri: string, state?: string): string {
+    const clientId = this.credential?.clientId || ''
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: 'code',
+      scope: '', // 拼多多不需要额外 scope
+    })
+    if (state) params.set('state', state)
+    return `https://openid.pinduoduo.com/authorize?${params.toString()}`
+  }
+
+  /**
    * OAuth 授权
    * POST /api/router
    * type=pdd.opentk.token.grant

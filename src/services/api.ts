@@ -4,7 +4,14 @@
 
 import axios from 'axios'
 
-const API_BASE = 'http://127.0.0.1:14714'
+// 动态获取 API 基础 URL
+// Electron 环境：使用相对路径（与后端同源）
+// 开发环境：使用 Vite proxy（配置在 vite.config.ts）
+export const API_BASE = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+  ? '' // 生产环境：相对路径
+  : (typeof window !== 'undefined' && (window as any).__ELECTRON__)
+    ? '' // Electron 环境：相对路径
+    : 'http://127.0.0.1:3001' // 开发环境：后端端口
 
 const api = axios.create({
   baseURL: API_BASE,

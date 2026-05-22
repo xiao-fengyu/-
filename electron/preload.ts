@@ -6,3 +6,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // invoke: (channel: string, ...args: unknown[]) => ipcRenderer.invoke(channel, ...args),
   // send: (channel: string, ...args: unknown[]) => ipcRenderer.send(channel, ...args),
 })
+
+// 标记 Electron 环境，供前端检测
+;(window as any).__ELECTRON__ = true

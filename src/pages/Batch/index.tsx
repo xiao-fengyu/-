@@ -18,6 +18,7 @@ import { InboxOutlined, EyeOutlined, DeleteOutlined, PlayCircleOutlined, CheckCi
 import type { ColumnsType } from 'antd/es/table'
 
 import { useAppStore } from '../../store'
+import { API_BASE } from '../../services/api'
 import * as api from '../../services/api'
 import type { BatchTask, BatchItem } from '../../store'
 
@@ -645,7 +646,7 @@ export default function BatchPage() {
         if (!path) return '—'
         return (
           <Image
-            src={`http://127.0.0.1:14714${path.replace(/^.*\/data\/images/, '/images')}`}
+            src={`${API_BASE}${path.replace(/^.*\/data\/images/, '/images')}`}
             width={60}
             height={60}
             style={{ objectFit: 'cover' }}

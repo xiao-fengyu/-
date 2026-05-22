@@ -5,14 +5,15 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
+    "server:dev": "tsx watch server/index.ts",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:dev": "concurrently \"tsx watch server/index.ts\" \"vite\" \"wait-on http://localhost:5173 && cross-env ELECTRON_RENDERER_URL=http://localhost:5173 electron .\"",
     "electron:build": "vite build && electron-builder",
     "electron:rebuild": "electron-rebuild",
     "electron:package": "npm run build && electron-builder",
     "electron:package:win": "npm run build && electron-builder --win --x64",
-    "postinstall": "electron-rebuild || true"
+    "postinstall": "electron-rebuild"
   },
   "keywords": [],
   "author": {
@@ -24,11 +25,13 @@
     "@electron/rebuild": "^4.0.4",
     "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.6",
+    "@types/form-data": "^2.5.2",
     "@types/multer": "^2.1.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
     "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
     "electron": "^33.0.0",
     "electron-builder": "^25.1.0",
     "tsx": "^4.22.3",
@@ -41,6 +44,7 @@
   "dependencies": {
     "antd": "^5.23.0",
     "axios": "^1.16.1",
+    "form-data": "^4.0.4",
     "better-sqlite3": "^11.7.0",
     "express": "^4.21.0",
     "multer": "^2.1.1",

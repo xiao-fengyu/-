@@ -2,9 +2,22 @@ import Database from 'better-sqlite3'
 import { join } from 'path'
 
 // 数据目录（运行时创建）
-const DATA_DIR = process.env.NODE_ENV === 'production'
-  ? join(process.resourcesPath, 'data')
-  : join(process.cwd(), 'data')
+// 优先级：环境变量 DB_DIR > process.resourcesPath (生产) > cwd/data (开发)
+const DATA_DIR = process.env.DB_DIR
+  ? process.env.DB_DIR
+  : process.env.NODE_ENV === 'production' && process.resourcesPath
+    ? process.resourcesPath + '/data'
+    : join(process.cwd(), 'data')
+
+// Electron 渲染进程可通过 IPC 传递 userData 路径
+export function setDataDir(dir: string): void {
+  // 仅在数据库初始化前调用有效
+  if (!db) {
+    // 通过环境变量覆盖
+    process.env.DB_DIR = dir
+    // 注意：如果已经初始化过数据库，此设置不会生效
+  }
+}
 
 const DB_PATH = join(DATA_DIR, 'e-platform.db')
 

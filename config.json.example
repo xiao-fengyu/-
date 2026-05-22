@@ -1,15 +1,18 @@
 {
+  "server": {
+    "port": 3001
+  },
   "aiProvider": {
     "name": "",
     "endpoint": "",
-    "apiKey": "your-api-key-here",
+    "apiKey": "",
     "model": ""
   },
   "platforms": {
     "pinduoduo": {
-      "clientId": "your-client-id",
-      "clientSecret": "your-client-secret",
-      "redirectUri": "http://localhost:3000/callback"
+      "clientId": "",
+      "clientSecret": "",
+      "redirectUri": "http://localhost:3001/api/pdd/oauth/callback"
     }
   },
   "imageOutput": {
@@ -17,5 +20,10 @@
     "minHeight": 480,
     "maxSizeMB": 3,
     "format": "jpg"
+  },
+  "batch": {
+    "maxConcurrency": 3,
+    "maxRetries": 3,
+    "retryDelayMs": 2000
   }
 }

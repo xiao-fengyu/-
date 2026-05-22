@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons'
 
 import './Publish.css'
+import { API_BASE } from '../../services/api'
 
 // ============================================================
 // 类型定义
@@ -63,10 +64,8 @@ interface CredentialItem {
 // API 封装
 // ============================================================
 
-const API = 'http://127.0.0.1:14714'
-
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   })
