@@ -1,133 +1,123 @@
 # e-platform 问题清单 (PROBLEM.md)
 
-> 创建日期：2026-05-22 | 状态：📋 待修复
+> 创建日期：2026-05-22 | 状态：✅ 已全部修复
 > 按优先级排列：P0（阻塞）> P1（重要）> P2（移植性/改善）
 
 ---
 
 ## P0 阻塞性问题（不修复则打包后无法运行）
 
-### P0-1: Electron 主进程不启动 Express 后端服务器
+### ✅ P0-1: Electron 主进程不启动 Express 后端服务器
 
-**现状**：`electron/main.ts` 只创建 BrowserWindow，完全不启动后端服务。打包后的 Electron 应用无法调用任何 API。
-
-**影响**：所有 AI 生成、商品管理、发布、批量等功能全部失效。
-
-**修复方案**：在 Electron 主进程中启动 Express 服务器（通过 `fork` 子进程或直接 import），在窗口创建前确保后端就绪。
-
----
-
-### P0-2: 前后端端口不一致
-
-**现状**：
-- 后端 `server/index.ts` 硬编码 `PORT = 3001`
-- 前端 `src/services/api.ts` / `src/pages/Publish/index.tsx` / `src/pages/Dashboard/index.tsx` / `src/pages/Batch/index.tsx` 全部硬编码 `http://127.0.0.1:14714`
-
-**影响**：开发模式下前端请求端口错误；Electron 打包后更无人监听。
-
-**修复方案**：统一端口配置，通过环境变量或配置文件管理。前端使用相对路径（Electron 环境）或可配置端口。
+**修复完成**：重写 `electron/main.ts`，在 `app.whenReady()` 中 `fork` Express 子进程。
+- 端口通过 `SERVER_PORT` 环境变量传递
+- 数据目录通过 `DB_DIR` 环境变量传递（使用 `app.getPath('userData')/data`）
+- 子进程通过端口轮询检测就绪，窗口在端口可用后才创建
+- `server/index.ts` 暴露 `startServer()` 函数，fork 模式下发送 `ready` 消息
 
 ---
 
-### P0-3: config.json 从未被后端读取
+### ✅ P0-2: 前后端端口不一致
 
-**现状**：`config.json.example` 存在但后端没有任何代码读取 `config.json`。所有 API Key、平台凭据、图片参数都硬编码或仅在内存中。
-
-**影响**：配置无法持久化，每次启动丢失。
-
-**修复方案**：后端启动时读取 `config.json`，提供配置加载/保存 API。
+**修复完成**：
+- 创建 `server/config.ts` 统一配置模块，优先级：环境变量 > config.json > 默认值
+- 后端端口默认 `3001`，可通过 `SERVER_PORT` 环境变量覆盖
+- 前端 `src/services/api.ts` 统一导出 `API_BASE`
+  - Electron 环境（`window.__ELECTRON__`）：相对路径
+  - 开发环境（Vite + proxy）：`http://127.0.0.1:3001`
+- Publish、Dashboard、Batch 页面全部改用 `API_BASE`
 
 ---
 
-### P0-4: 生产环境数据库路径使用只读目录
+### ✅ P0-3: config.json 从未被后端读取
 
-**现状**：`server/services/database.ts` 中生产模式路径为 `join(process.resourcesPath, 'data')`。
+**修复完成**：`server/config.ts` 实现完整配置加载链：
+- 启动时自动读取 `config.json`
+- 若不存在但 `config.json.example` 存在，自动复制创建
+- 支持 `saveConfig()` 持久化
+- 深合并策略，支持环境变量覆盖
 
-**影响**：Electron 打包后 `resourcesPath` 是只读的（在 app.asar 内），SQLite 无法写入，应用直接崩溃。
+---
 
-**修复方案**：生产环境使用 `app.getPath('userData')`（Electron 标准用户数据目录），通过进程间通信传递路径。
+### ✅ P0-4: 生产环境数据库路径使用只读目录
+
+**修复完成**：
+- Electron 主进程通过 `app.getPath('userData')` 获取用户数据目录
+- 通过 `DB_DIR` 环境变量传递给 Express 子进程
+- `database.ts` 优先读取 `process.env.DB_DIR`
+- 主进程确保目录存在（`userData/data/`、`userData/data/images/`、`userData/data/uploads/`）
 
 ---
 
 ## P1 重要问题
 
-### P1-1: AI 提供商配置未持久化
+### ✅ P1-1: AI 提供商配置未持久化
 
-**现状**：Zustand Store 中的提供商配置只保存在内存中。`database.ts` 有 `saveProvider/getProviders` 方法，但后端没有暴露对应的 REST API。设置页面表单也无法提交保存。
-
-**影响**：用户在设置中添加的 AI 提供商配置，应用重启后全部丢失。
-
-**修复方案**：添加 `/api/providers` CRUD API；设置页面表单对接保存接口。
-
----
-
-### P1-2: PDD OAuth 流程不完整
-
-**现状**：`server/routes/pdd.ts` 有 `/oauth/authorize` 端点返回 URL，但没有自动打开浏览器，也没有 `/oauth/callback` 回调端点处理授权码换取 token。
-
-**影响**：用户无法完成拼多多 OAuth 授权流程。
-
-**修复方案**：添加回调路由 `GET /api/pdd/oauth/callback`；前端在 Electron 环境下使用 `shell.openExternal` 打开授权页。
+**修复完成**：
+- 创建 `server/routes/providers.ts`，提供完整的 REST API
+  - `GET /api/providers` — 获取所有提供商
+  - `GET /api/providers/default` — 获取默认提供商
+  - `POST /api/providers` — 创建/更新
+  - `DELETE /api/providers/:id` — 删除
+  - `PATCH /api/providers/:id/default` — 设为默认
+- 注册到 `server/index.ts`
 
 ---
 
-### P1-3: 无环境变量/统一配置机制
+### ✅ P1-2: PDD OAuth 流程不完整
 
-**现状**：端口、API 地址、数据目录等配置散落在各文件中硬编码。
-
-**影响**：不同环境（开发/生产/测试）需要改源码。
-
-**修复方案**：引入统一配置模块，支持环境变量 + config.json + 默认值三级优先级。
+**修复完成**：
+- `server/routes/pdd.ts` 新增 `GET /oauth/url` — 生成授权 URL
+- 新增 `GET /oauth/callback` — 处理 OAuth 回调，自动交换 token 并保存到数据库
+- `pdd-adapter.ts` 新增 `getOAuthUrl()` 方法
+- 回调页面展示成功/失败信息，3 秒后自动关闭
 
 ---
 
-### P1-4: electron:dev 脚本不启动后端
+### ✅ P1-3: 无环境变量/统一配置机制
 
-**现状**：`package.json` 中 `electron:dev` 只启动 Vite + Electron，没有启动 Express 后端。
+**修复完成**：见 P0-3 和 P0-2 修复详情。
+- `server/config.ts` — 深合并 + 三级优先级 + 单例
+- `config.json.example` — 完整配置模板
 
-**影响**：开发模式下无法调试完整功能。
+---
 
-**修复方案**：修改为同时启动后端（tsx server/index.ts）。
+### ✅ P1-4: electron:dev 脚本不启动后端
+
+**修复完成**：
+- `npm run electron:dev` — concurrently 启动后端 + Vite + Electron
+- `npm run server:dev` — 单独启动后端（tsx watch）
+- 添加 `cross-env` 依赖用于传递 `ELECTRON_RENDERER_URL`
 
 ---
 
 ## P2 移植性与改善
 
-### P2-1: 前端多处硬编码 API 地址
+### ✅ P2-1: 前端多处硬编码 API 地址
 
-**现状**：`src/services/api.ts`、`src/pages/Publish/index.tsx`、`src/pages/Dashboard/index.tsx`、`src/pages/Batch/index.tsx` 各自定义 `API_BASE = 'http://127.0.0.1:14714'`。
+**修复完成**：统一到 `src/services/api.ts` 导出 `API_BASE`，Publish、Dashboard、Batch 页面全部改用 import。
 
-**影响**：维护困难，端口变更需改 4 个文件。
+### ✅ P2-2: 图片预览路径硬编码
 
-**修复方案**：统一到 `src/services/api.ts` 一处定义，其他文件 import 使用。
+**修复完成**：Batch/index.tsx 第 648 行改为使用 `API_BASE`。
 
----
+### ✅ P2-3: 缺少首次运行指引
 
-### P2-2: 图片预览路径硬编码
+**修复完成**：`App.tsx` 检测无 AI 提供商且首次运行时显示引导弹窗，localStorage 持久化状态。
 
-**现状**：`src/pages/Batch/index.tsx:648` 硬编码 `http://127.0.0.1:14714` 拼接图片路径。
+### ✅ P2-4: 后端关闭时进程清理
 
-**修复方案**：使用统一的 API_BASE。
+**修复完成**：`electron/main.ts` 监听 `window-all-closed` 和 `before-quit`，kill Express 子进程。
 
----
+### ✅ P2-5: 后端不服务静态图片（新增）
 
-### P2-3: 缺少首次运行指引
-
-**现状**：新 clone 用户不知道需要 `cp config.json.example config.json` + 编辑。
-
-**修复方案**：后端启动时检测 config.json 不存在则自动从 example 复制，或启动后端服务自动创建默认配置。
-
----
-
-### P2-4: 后端关闭时进程清理
-
-**现状**：Electron 窗口关闭后，Express 子进程可能残留。
-
-**修复方案**：在 `app.on('window-all-closed')` 中清理子进程。
+**修复完成**：`server/index.ts` 添加 `express.static` 服务 `/images` 和 `/uploads`，生产环境同时服务前端 `dist/` 并 SPA 回退。
 
 ---
 
 ## 需要测试的功能（服务器外网阻断未测）
+
+> 所有 P0-P2 问题已修复，以下功能待有网络的机器验证
 
 | # | 功能 | 阻塞原因 | 测试条件 |
 |---|------|---------|---------|
@@ -148,18 +138,19 @@
 
 | 编号 | 状态 | 说明 |
 |------|------|------|
-| P0-1 | 📋 待修复 | |
-| P0-2 | 📋 待修复 | |
-| P0-3 | 📋 待修复 | |
-| P0-4 | 📋 待修复 | |
-| P1-1 | 📋 待修复 | |
-| P1-2 | 📋 待修复 | |
-| P1-3 | 📋 待修复 | |
-| P1-4 | 📋 待修复 | |
-| P2-1 | 📋 待修复 | |
-| P2-2 | 📋 待修复 | |
-| P2-3 | 📋 待修复 | |
-| P2-4 | 📋 待修复 | |
+| P0-1 | ✅ 已修复 | Electron fork Express 子进程 |
+| P0-2 | ✅ 已修复 | 统一配置 + Vite proxy + API_BASE |
+| P0-3 | ✅ 已修复 | server/config.ts 三级优先级 |
+| P0-4 | ✅ 已修复 | DB_DIR 环境变量 + userData 路径 |
+| P1-1 | ✅ 已修复 | /api/providers CRUD |
+| P1-2 | ✅ 已修复 | OAuth URL + 回调端点 |
+| P1-3 | ✅ 已修复 | 同 P0-3 |
+| P1-4 | ✅ 已修复 | concurrently 三进程启动 |
+| P2-1 | ✅ 已修复 | 统一 API_BASE |
+| P2-2 | ✅ 已修复 | Batch 图片路径修复 |
+| P2-3 | ✅ 已修复 | 首次引导弹窗 |
+| P2-4 | ✅ 已修复 | 进程清理 |
+| P2-5 | ✅ 已修复 | 静态文件服务 |
 
 ---
 

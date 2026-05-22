@@ -20,7 +20,7 @@
 - Node.js >= 18
 - npm >= 9
 
-### 开发模式
+### 快速开始
 
 ```bash
 # 1. 克隆仓库
@@ -30,10 +30,17 @@ cd e-platform
 # 2. 安装依赖
 npm install
 
-# 3. 复制配置模板（如需要）
+# 3. 复制配置模板
 cp config.json.example config.json
+# 编辑 config.json 填写你的 AI 提供商和平台凭据
 
-# 4. 启动开发模式
+# 4. 开发模式（同时启动后端 + 前端 + Electron）
+npm run electron:dev
+
+# 或单独启动后端：
+npm run server:dev
+
+# 或仅启动前端：
 npm run dev
 ```
 
@@ -62,7 +69,28 @@ e-platform/
 └── resources/           # 应用资源
 ```
 
-## 开发进度
+### 配置说明
+
+应用启动时会自动查找 `config.json`（项目根目录），优先级：
+1. 环境变量（如 `SERVER_PORT`、`DB_DIR`）
+2. `config.json` 文件
+3. 内置默认值
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| `server.port` | `3001` | 后端 Express 服务端口 |
+| `aiProvider.endpoint` | 空 | AI 提供商 API 地址 |
+| `aiProvider.apiKey` | 空 | AI 提供商密钥 |
+| `platforms.pinduoduo.clientId` | 空 | 拼多多开放平台 Client ID |
+| `batch.maxConcurrency` | `3` | 批量任务最大并发数 |
+
+Electron 打包后，数据目录位于 `%APPDATA%/e-platform/data/`。
+
+### 架构说明
+
+- **开发模式**：Vite (:5173) + Express (:3001) + Electron 三者并行，Vite proxy 转发 `/api` 到后端
+- **生产模式**：Electron 启动时 fork Express 子进程（端口 3001），静态文件由 Express 直接服务
+- **配置**：`server/config.ts` 统一管理，支持热重载
 
 | 阶段 | 状态 | 说明 |
 |------|------|------|
@@ -72,6 +100,7 @@ e-platform/
 | 阶段四：完整工作流串联 | ✅ 已完成 | 最小闭环 |
 | 阶段五：批量模式 | ✅ 已完成 | 批量导入/生成/确认/发布 + 队列管理 + 失败重试 |
 | 阶段六：测试 & 打包发布 | ✅ 已完成 | TypeScript 编译/构建通过 + 原生模块重建 + 打包管线验证 + 提供商测试脚本 + 使用说明书 |
+| 阶段七：生产环境修复 | ✅ 已完成 | 统一配置系统 + Electron 后端集成 + 端口统一 + OAuth 回调 + 首次引导 |
 
 ### 已完成详情
 - [x] 项目骨架搭建（Electron + React + TypeScript + Vite）
