@@ -8,6 +8,8 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as XLSX from 'xlsx'
 import { DatabaseService } from '../services/database'
+import { startBatchGeneration, getGenerationStatus, isGenerating } from '../services/batch-generator'
+import type { ImageProviderConfig } from '../services/image-gen'
 
 const router = Router()
 
@@ -287,8 +289,72 @@ router.delete('/tasks/:id', (req, res) => {
       return res.status(404).json({ success: false, error: '任务不存在' })
     }
 
+    // 如果正在生成中，不允许删除
+    if (isGenerating(req.params.id)) {
+      return res.status(400).json({ success: false, error: '任务正在生成中，无法删除' })
+    }
+
     db.deleteBatchTask(req.params.id)
     res.json({ success: true, message: '已删除' })
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+/** 触发批量生成 */
+router.post('/tasks/:id/generate', async (req, res) => {
+  try {
+    const db = new DatabaseService()
+    const task = db.getBatchTask(req.params.id)
+    if (!task) {
+      return res.status(404).json({ success: false, error: '任务不存在' })
+    }
+
+    const { providerConfig: rawProviderConfig, maxConcurrency } = req.body
+    if (!rawProviderConfig) {
+      return res.status(400).json({ success: false, error: '缺少 providerConfig' })
+    }
+
+    // 可能是 JSON 字符串或对象
+    const providerConfig: ImageProviderConfig = typeof rawProviderConfig === 'string'
+      ? JSON.parse(rawProviderConfig)
+      : rawProviderConfig
+
+    const concurrency = Math.min(Math.max(parseInt(maxConcurrency) || 3, 1), 10)
+
+    await startBatchGeneration(req.params.id, providerConfig, concurrency)
+
+    res.json({
+      success: true,
+      message: '批量生成已启动',
+      data: { taskId: req.params.id },
+    })
+  } catch (err: any) {
+    console.error('[批量生成启动失败]', err.message)
+    res.status(400).json({ success: false, error: err.message })
+  }
+})
+
+/** 查询批量生成进度 */
+router.get('/tasks/:id/status', (req, res) => {
+  try {
+    const db = new DatabaseService()
+    const task = db.getBatchTask(req.params.id)
+    if (!task) {
+      return res.status(404).json({ success: false, error: '任务不存在' })
+    }
+
+    const genStatus = getGenerationStatus(req.params.id)
+    const counts = db.getBatchItemCount(req.params.id)
+
+    res.json({
+      success: true,
+      data: {
+        taskStatus: task.status,
+        generation: genStatus,
+        counts,
+      },
+    })
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message })
   }

@@ -238,6 +238,7 @@ export interface ProductInsert {
   description?: string
   platform?: string
   status?: string
+  batch_task_id?: string
 }
 
 export interface ProductUpdate {
@@ -298,8 +299,8 @@ export class DatabaseService {
   createProduct(data: ProductInsert): string {
     const id = `prod_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
     this.db.prepare(`
-      INSERT INTO products (id, title, category_id, price, stock, description, platform, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO products (id, title, category_id, price, stock, description, platform, status, batch_task_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       data.title || null,
@@ -309,6 +310,7 @@ export class DatabaseService {
       data.description || null,
       data.platform || null,
       data.status || 'draft',
+      data.batch_task_id || null,
     )
     return id
   }
