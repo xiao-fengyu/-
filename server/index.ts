@@ -5,6 +5,7 @@ import productsRoutes from './routes/products'
 import draftsRoutes from './routes/drafts'
 import logsRoutes from './routes/logs'
 import backupRoutes from './routes/backup'
+import batchRoutes from './routes/batch'
 
 const app = express()
 const PORT = 3001
@@ -33,6 +34,9 @@ app.use('/api/logs', logsRoutes)
 
 // 数据备份路由
 app.use('/api/backup', backupRoutes)
+
+// 批量任务路由
+app.use('/api/batch', batchRoutes)
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
