@@ -60,30 +60,55 @@ npm run electron:package
 - 触发方式：
   - 推送影响打包的相关文件到 `main`
   - 或在 GitHub Actions 页面手动执行 `build-windows-exe`
+- 构建流程：安装依赖 → 前端构建 → 重建原生模块 → **esbuild 编译后端** → electron-builder 打包
 
 构建完成后，可在 GitHub Actions 的本次运行中下载产物：
 
 - `e-platform-windows-x64`
 - 内含 `release/*.exe` 安装包及相关更新描述文件
 
-> 说明：当前服务器是 Linux 环境，缺少 Windows 打包所需运行条件；因此 Windows 安装包改为由 GitHub 的 Windows runner 负责构建，这是当前最稳定的方案。
+> 说明：当前服务器是 Linux 环境，缺少 Windows 打包所需运行条件；因此 Windows 安装包由 GitHub 的 Windows runner 负责构建，这是当前最稳定的方案。
 
 ## 项目结构
 
 ```
 e-platform/
-├── PLAN.md              # 开发计划书
-├── README.md            # 本文件
+├── PLAN.md                   # 开发计划书
+├── PLAN-PHASE6.md            # 阶段六详细计划
+├── PROBLEM.md                # 问题记录
+├── README.md                 # 本文件
+├── BUILD.md                  # 构建与打包指南
 ├── package.json
+├── package-lock.json
 ├── tsconfig.json
+├── tsconfig.node.json
+├── tsconfig.server.json      # 后端编译配置
 ├── vite.config.ts
 ├── electron-builder.yml
+├── index.html
+├── config.json.example       # 配置模板
 ├── .gitignore
-├── electron/            # Electron 主进程
-├── src/                 # React 前端
-├── server/              # 本地后端服务
-├── data/                # 运行时数据（不纳入 git）
-└── resources/           # 应用资源
+├── .github/
+│   └── workflows/
+│       └── build-windows-exe.yml  # CI/CD Windows 构建
+├── electron/                 # Electron 主进程
+│   ├── main.ts               # 主进程入口
+│   └── preload.ts            # 预加载脚本
+├── src/                      # React 前端
+├── server/                   # 本地后端服务
+│   ├── config.ts             # 配置管理
+│   ├── index.ts              # 后端入口
+│   ├── middleware/           # 中间件
+│   ├── routes/               # API 路由
+│   ├── services/             # 业务逻辑服务
+│   └── utils/                # 工具函数
+├── data/                     # 运行时数据（不纳入 git）
+├── resources/                # 应用资源
+│   └── icon.png
+├── docs/
+│   └── USER_GUIDE.md         # 用户使用说明书
+└── scripts/
+    └── test_providers.py     # 提供商连通性测试
 ```
 
 ### 配置说明
