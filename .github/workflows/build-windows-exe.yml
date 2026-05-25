@@ -43,10 +43,13 @@ jobs:
       - name: Rebuild native modules
         run: npx electron-rebuild
 
+      - name: Compile backend server
+        run: npx esbuild server/index.ts --bundle --platform=node --outfile=dist-server/index.js --external:electron --external:better-sqlite3 --external:sharp --external:express --external:multer --external:form-data --format=cjs
+
       - name: Package Windows installer
         env:
           CI: true
-        run: npm run electron:package:win
+        run: npx electron-builder --win --x64
 
       - name: List release artifacts
         shell: pwsh

@@ -31,7 +31,7 @@ function startBackendServer(): Promise<number> {
     }
 
     const port = getServerPort()
-    const serverPath = join(__dirname, '../server/index.js')
+    const serverPath = join(__dirname, '../dist-server/index.js')
     const serverPathTs = join(__dirname, '../../server/index.ts')
 
     // 优先使用编译后的 JS，回退到 TS（开发模式）

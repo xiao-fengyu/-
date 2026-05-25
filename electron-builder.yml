@@ -6,19 +6,14 @@ directories:
 files:
   - dist/**/*
   - dist-electron/**/*
-  - server/**/*
+  - dist-server/**/*
   - '!node_modules/**/{.cache,*.d.ts,src,test,tests,__tests__}'
   - '!**/{.DS_Store,*.log,.env}'
 asarUnpack:
   - 'node_modules/better-sqlite3/**'
   - 'node_modules/sharp/**'
   - 'node_modules/sqlite3/**'
-extraResources:
-  - from: server
-    to: server
-    filter:
-      - '**/*'
-      - '!**/*.test.*'
+extraResources: []
 win:
   target:
     - target: nsis
