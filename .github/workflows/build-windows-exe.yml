@@ -68,17 +68,24 @@ jobs:
 
       - name: Commit build log to repo on failure
         if: failure()
+        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          mkdir -p .github/logs
-          cp build-output.log .github/logs/last-build.log
-          git add .github/logs/last-build.log
-          git commit -m "ci: build log from run #${{ github.run_number }}" || echo "no changes to commit"
-          git checkout -b build-log-${{ github.run_number }}
-          git push origin build-log-${{ github.run_number }} --force
+          $logBytes = [System.IO.File]::ReadAllBytes("build-output.log")
+          $logBase64 = [System.Convert]::ToBase64String($logBytes)
+          $body = @{
+            message = "ci: build log from run #${env:RUN_NUMBER}"
+            content = $logBase64
+            branch = "main"
+          } | ConvertTo-Json
+          $headers = @{
+            "Authorization" = "Bearer ${{ github.token }}"
+            "Accept" = "application/vnd.github+json"
+          }
+          $response = Invoke-RestMethod -Uri "https://api.github.com/repos/xiao-fengyu/-/contents/.github/logs/last-build.log" -Method PUT -Headers $headers -Body $body
+          Write-Host "Log committed successfully"
 
       - name: List release artifacts
         shell: pwsh
