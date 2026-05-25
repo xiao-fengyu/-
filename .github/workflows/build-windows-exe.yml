@@ -77,7 +77,8 @@ jobs:
           cp build-output.log .github/logs/last-build.log
           git add .github/logs/last-build.log
           git commit -m "ci: build log from run #${{ github.run_number }}" || echo "no changes to commit"
-          git push origin HEAD:main
+          git checkout -b build-log-${{ github.run_number }}
+          git push origin build-log-${{ github.run_number }} --force
 
       - name: List release artifacts
         shell: pwsh
