@@ -49,7 +49,8 @@ jobs:
       - name: Package Windows installer
         env:
           CI: true
-        run: npx electron-builder --win --x64
+          DEBUG: electron-builder
+        run: npx electron-builder --win --x64 --publish never
 
       - name: List release artifacts
         shell: pwsh
