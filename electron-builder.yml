@@ -21,7 +21,7 @@ win:
     - target: nsis
       arch:
         - x64
-  icon: resources/icon.png
+  icon: resources/icon.ico
   requestedExecutionLevel: asInvoker
 nsis:
   oneClick: false
@@ -31,8 +31,8 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: e-platform
-  installerIcon: resources/icon.png
-  uninstallerIcon: resources/icon.png
+  installerIcon: resources/icon.ico
+  uninstallerIcon: resources/icon.ico
 mac:
   target: dmg
   icon: resources/icon.png
