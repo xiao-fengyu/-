@@ -50,7 +50,21 @@ jobs:
         env:
           CI: true
           DEBUG: electron-builder
-        run: npx electron-builder --win --x64 --publish never
+        shell: bash
+        run: |
+          npx electron-builder --win --x64 --publish never > build-output.log 2>&1 || {
+            echo "electron-builder failed with exit code $?"
+            cat build-output.log
+            exit 1
+          }
+
+      - name: Upload build log (always)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-log
+          path: build-output.log
+          if-no-files-found: warn
 
       - name: List release artifacts
         shell: pwsh
