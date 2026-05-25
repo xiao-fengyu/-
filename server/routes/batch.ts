@@ -15,7 +15,9 @@ import { startBatchPublish, getPublishStatus } from '../services/batch-publisher
 const router = Router()
 
 // 文件上传配置
-const UPLOAD_DIR = path.join(__dirname, '../../../data/uploads')
+const UPLOAD_DIR = process.env.DB_DIR
+  ? path.join(process.env.DB_DIR, 'uploads')
+  : path.join(__dirname, '../../../data/uploads')
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true })
 }

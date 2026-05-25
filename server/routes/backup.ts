@@ -9,9 +9,11 @@ import { DatabaseService } from '../services/database'
 
 const router = express.Router()
 
-const BACKUP_DIR = process.env.NODE_ENV === 'production'
-  ? join(process.resourcesPath, 'data', 'backups')
-  : join(process.cwd(), 'data', 'backups')
+const BACKUP_DIR = process.env.DB_DIR
+  ? join(process.env.DB_DIR, 'backups')
+  : (process.env.NODE_ENV === 'production'
+    ? join(process.resourcesPath || process.cwd(), 'data', 'backups')
+    : join(process.cwd(), 'data', 'backups'))
 
 // 确保备份目录存在
 function ensureBackupDir(): void {

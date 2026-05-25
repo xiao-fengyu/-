@@ -24,10 +24,6 @@ app.use('/uploads', express.static(join(dataDir, 'uploads')))
 if (process.env.NODE_ENV === 'production') {
   const distPath = join(__dirname, '../dist')
   app.use(express.static(distPath))
-  // SPA 路由回退
-  app.get('*', (_req, res) => {
-    res.sendFile(join(distPath, 'index.html'))
-  })
 }
 
 // 健康检查
@@ -58,6 +54,14 @@ app.use('/api/batch', batchRoutes)
 
 // AI 提供商管理路由
 app.use('/api/providers', providerRoutes)
+
+// SPA 路由回退 — 必须在所有 API 路由之后
+if (process.env.NODE_ENV === 'production') {
+  const distPath = join(__dirname, '../dist')
+  app.get('*', (_req, res) => {
+    res.sendFile(join(distPath, 'index.html'))
+  })
+}
 
 export function startServer(port?: number): Promise<{ port: number; server: ReturnType<typeof app.listen> }> {
   return new Promise((resolve) => {

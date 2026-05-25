@@ -7,12 +7,14 @@ files:
   - dist/**/*
   - dist-electron/**/*
   - dist-server/**/*
-  - '!node_modules/**/{.cache,*.d.ts,src,test,tests,__tests__}'
+  - '!node_modules/**/{.cache,*.d.ts,test,tests,__tests__}'
   - '!**/{.DS_Store,*.log,.env}'
 asar: true
 asarUnpack:
   - 'node_modules/better-sqlite3/**'
   - 'node_modules/sharp/**'
+  - 'node_modules/@img/sharp-linux-x64/**'
+  - 'node_modules/@img/sharp-libvips-linux-x64/**'
   - 'node_modules/sqlite3/**'
 npmRebuild: false
 extraResources: []
