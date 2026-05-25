@@ -1,0 +1,62 @@
+name: build-windows-exe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-windows-exe.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'electron-builder.yml'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'tsconfig.node.json'
+      - 'index.html'
+      - 'electron/**'
+      - 'src/**'
+      - 'server/**'
+      - 'resources/**'
+
+jobs:
+  build-windows-installer:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows NSIS installer
+        env:
+          CI: true
+        run: npm run electron:package:win
+
+      - name: List release artifacts
+        shell: pwsh
+        run: |
+          if (Test-Path release) {
+            Get-ChildItem -Path release -Recurse | Select-Object FullName, Length
+          } else {
+            Write-Error 'release directory not found'
+          }
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: e-platform-windows-x64
+          path: |
+            release/*.exe
+            release/latest*.yml
+            release/*.blockmap
+          if-no-files-found: error

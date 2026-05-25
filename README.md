@@ -48,8 +48,25 @@ npm run dev
 
 ```bash
 npm run build
-npm run package
+npm run electron:package
 ```
+
+### GitHub Actions 构建 Windows exe 安装包
+
+仓库已提供 Windows Runner 的 GitHub Actions 工作流：
+
+- 工作流文件：`.github/workflows/build-windows-exe.yml`
+- 目标产物：Windows x64 **NSIS `.exe` 安装包**
+- 触发方式：
+  - 推送影响打包的相关文件到 `main`
+  - 或在 GitHub Actions 页面手动执行 `build-windows-exe`
+
+构建完成后，可在 GitHub Actions 的本次运行中下载产物：
+
+- `e-platform-windows-x64`
+- 内含 `release/*.exe` 安装包及相关更新描述文件
+
+> 说明：当前服务器是 Linux 环境，缺少 Windows 打包所需运行条件；因此 Windows 安装包改为由 GitHub 的 Windows runner 负责构建，这是当前最稳定的方案。
 
 ## 项目结构
 
