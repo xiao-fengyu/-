@@ -44,7 +44,7 @@ jobs:
         run: npx electron-rebuild
 
       - name: Compile backend server
-        run: npx esbuild server/index.ts --bundle --platform=node --outfile=dist-server/index.js --external:electron --external:better-sqlite3 --external:sharp --external:express --external:multer --external:form-data --format=cjs
+        run: npx esbuild server/index.ts --bundle --platform=node --outfile=dist-server/index.js --external:electron --external:better-sqlite3 --external:sharp --format=cjs
 
       - name: Package Windows installer
         env:
