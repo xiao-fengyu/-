@@ -11,7 +11,6 @@ files:
   - '!**/{.DS_Store,*.log,.env}'
 asar: true
 asarUnpack:
-  - 'dist-server/**'
   - 'node_modules/better-sqlite3/**'
   - 'node_modules/sharp/**'
   - 'node_modules/@img/sharp-linux-x64/**'
@@ -19,7 +18,10 @@ asarUnpack:
   - 'node_modules/@img/sharp-win32-x64/**'
   - 'node_modules/sqlite3/**'
 npmRebuild: false
-extraResources: []
+extraResources:
+  - from: 'dist-server'
+    to: 'dist-server'
+    filter: ['**/*']
 win:
   target:
     - target: nsis

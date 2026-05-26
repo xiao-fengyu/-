@@ -32,11 +32,11 @@ function startBackendServer(): Promise<number> {
 
     const port = getServerPort()
 
-    // 解析 dist-server 路径：打包后文件被 unpack 到 app.asar.unpacked 目录
+    // 解析 dist-server 路径：打包后通过 extraResources 放在 resources/dist-server/
     let serverPath: string
     if (app.isPackaged) {
-      // 生产环境：resources/app.asar.unpacked/dist-server/index.js
-      serverPath = join(process.resourcesPath, 'app.asar.unpacked', 'dist-server', 'index.js')
+      // 生产环境：extraResources 解压到 resources/dist-server/
+      serverPath = join(process.resourcesPath, 'dist-server', 'index.js')
     } else {
       // 开发环境：相对路径
       serverPath = join(__dirname, '../dist-server/index.js')
@@ -60,13 +60,22 @@ function startBackendServer(): Promise<number> {
     console.log(`[Electron] 数据目录: ${userDataPath}`)
     console.log(`[Electron] 端口: ${port}`)
 
+    // 生产环境下，原生模块在 resources/app.asar.unpacked/node_modules/
+    // 需要通过 NODE_PATH 告诉 fork 的子进程去哪里找到 better-sqlite3、sharp 等 external 模块
+    const envVars: Record<string, string> = {
+      ...process.env,
+      NODE_ENV: 'production',
+      SERVER_PORT: String(port),
+      DB_DIR: dbDir,
+    }
+    if (app.isPackaged) {
+      const unpackedNodeModules = join(process.resourcesPath, 'app.asar.unpacked', 'node_modules')
+      envVars.NODE_PATH = unpackedNodeModules
+      console.log(`[Electron] NODE_PATH=${unpackedNodeModules}`)
+    }
+
     serverProcess = fork(serverEntry, [], {
-      env: {
-        ...process.env,
-        NODE_ENV: 'production',
-        SERVER_PORT: String(port),
-        DB_DIR: dbDir,
-      },
+      env: envVars,
       stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
     })
 
