@@ -143,7 +143,7 @@ Electron 打包后，数据目录位于 `%APPDATA%/e-platform/data/`。
 | 阶段五：批量模式 | ✅ 已完成 | 批量导入/生成/确认/发布 + 队列管理 + 失败重试 |
 | 阶段六：测试 & 打包发布 | ✅ 已完成 | TypeScript 编译/构建通过 + 原生模块重建 + 打包管线验证 + 提供商测试脚本 + 使用说明书 |
 | 阶段七：生产环境修复 | ✅ 已完成 | 统一配置系统 + Electron 后端集成 + 端口统一 + OAuth 回调 + 首次引导 |
-| 阶段八：Windows 安装包白屏修复 | ✅ 已完成 | Electron fork 子进程路径修正 + NODE_PATH 原生模块定位 + preload API 注入 |
+| 阶段八：Windows 安装包白屏修复 | 🔄 修复中 | Electron fork 子进程路径修正 + NODE_PATH 原生模块定位 + preload API 注入 + **file:// 协议替换为 HTTP** |
 
 ### 已完成详情
 - [x] 项目骨架搭建（Electron + React + TypeScript + Vite）
@@ -283,10 +283,13 @@ getApiBaseUrl: () => {
 | RUN16 | b1e3899 | dist-server asarUnpack + 路径修正 | 白屏依旧 |
 | RUN17+ | 65239dd | NODE_PATH 设置 + extraResources | 白屏依旧 |
 | RUN18+ | 5a62b17 | sharp 嵌套 @img asarUnpack + NODE_PATH 双路径覆盖 | 白屏依旧 |
-| RUN19+ | （待构建） | NODE_PATH 增加 asar/node_modules 路径，修复 detect-libc 缺失 | 待验证 |
+| RUN19+ | bb17b54 | NODE_PATH 增加 asar/node_modules 路径，修复 detect-libc 缺失 | 白屏依旧 |
+| RUN21 | ebc429e | 添加 unpacked artifact 支持直接部署 | 后端正常，前端白屏 |
+| RUN22+ | eb94a99 | **loadFile(file://) 改为 loadURL(http://127.0.0.1:port)，彻底绕过 file:// 协议** | 待验证 |
 
 #### 关键踩坑
-1. **asarUnpack 不可靠** — 不同平台行为有差异，改用 `extraResources` 更确定
+1. **file:// 协议兼容性** — Electron 通过 `loadFile()` 以 `file://` 协议加载前端时，某些 JS/CSS 行为与 HTTP 不同，导致前端渲染为白屏。后端已通过 `express.static(distPath)` 在 HTTP 根路径服务前端，改为 `loadURL(http://127.0.0.1:${port})` 后与浏览器行为一致。
+2. **asarUnpack 不可靠** — 不同平台行为有差异，改用 `extraResources` 更确定
 2. **global 不跨进程** — main process 的 `global` 和 preload 的 `global` 是两个独立对象
 3. **process.env 继承** — 渲染进程在创建时继承主进程的环境变量，所以 `createWindow()` 之前设置即可
 4. **esbuild --external** — 原生模块标记 external 后，必须在运行时通过 NODE_PATH 或正确路径才能找到
