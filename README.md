@@ -285,7 +285,8 @@ getApiBaseUrl: () => {
 | RUN18+ | 5a62b17 | sharp 嵌套 @img asarUnpack + NODE_PATH 双路径覆盖 | 白屏依旧 |
 | RUN19+ | bb17b54 | NODE_PATH 增加 asar/node_modules 路径，修复 detect-libc 缺失 | 白屏依旧 |
 | RUN21 | ebc429e | 添加 unpacked artifact 支持直接部署 | 后端正常，前端白屏 |
-| RUN22+ | eb94a99 | **loadFile(file://) 改为 loadURL(http://127.0.0.1:port)，彻底绕过 file:// 协议** | 待验证 |
+| RUN22 | eb94a99 | loadFile(file://) 改为 loadURL(http://127.0.0.1:port) | 后端启动但 404 |
+| RUN23 | 4390b9f | **传递 APP_ROOT 给 fork 子进程，修复 server 用 process.cwd() 找不到 dist/ → 404** | 待验证 |
 
 #### 关键踩坑
 1. **file:// 协议兼容性** — Electron 通过 `loadFile()` 以 `file://` 协议加载前端时，某些 JS/CSS 行为与 HTTP 不同，导致前端渲染为白屏。后端已通过 `express.static(distPath)` 在 HTTP 根路径服务前端，改为 `loadURL(http://127.0.0.1:${port})` 后与浏览器行为一致。
@@ -295,6 +296,7 @@ getApiBaseUrl: () => {
 4. **esbuild --external** — 原生模块标记 external 后，必须在运行时通过 NODE_PATH 或正确路径才能找到
 5. **sharp 嵌套 @img 依赖** — sharp 的 `@img/sharp-win32-x64` 是嵌套在 `sharp/node_modules/@img/` 下的，electron-builder 的 asarUnpack glob `node_modules/@img/**` 只匹配**顶层**，不会匹配嵌套依赖。必须显式加 `sharp/node_modules/@img/**`。同时 NODE_PATH 需要覆盖两层路径（顶层 + sharp 嵌套）
 6. **NODE_PATH 不能只指向 unpacked** — `detect-libc` 等纯 JS 依赖在 asar 内，NODE_PATH 必须同时包含 `app.asar/node_modules`，否则 fork 子进程找不到这些模块
+7. **process.cwd() 在 fork 子进程中不可靠** — Windows 上 fork 的 Node.js 子进程 cwd 通常是系统目录（如 `C:\Windows\System32`），`server/index.ts` 用 `process.cwd()` 解析 `dist/` 和 `data/` 路径全部指向错误位置 → **404**。必须通过环境变量（APP_ROOT）显式传递正确路径。
 
 #### 诊断方法论（阶段八新增）
 - **WinRM 远程执行** — 通过 PowerShell WinRM (5985) 直接在 Windows 机器上运行命令，捕获 Electron fork 子进程的 stdout/stderr
