@@ -31,7 +31,16 @@ function startBackendServer(): Promise<number> {
     }
 
     const port = getServerPort()
-    const serverPath = join(__dirname, '../dist-server/index.js')
+
+    // 解析 dist-server 路径：打包后文件被 unpack 到 app.asar.unpacked 目录
+    let serverPath: string
+    if (app.isPackaged) {
+      // 生产环境：resources/app.asar.unpacked/dist-server/index.js
+      serverPath = join(process.resourcesPath, 'app.asar.unpacked', 'dist-server', 'index.js')
+    } else {
+      // 开发环境：相对路径
+      serverPath = join(__dirname, '../dist-server/index.js')
+    }
     const serverPathTs = join(__dirname, '../../server/index.ts')
 
     // 优先使用编译后的 JS，回退到 TS（开发模式）

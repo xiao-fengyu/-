@@ -11,6 +11,7 @@ files:
   - '!**/{.DS_Store,*.log,.env}'
 asar: true
 asarUnpack:
+  - 'dist-server/**'
   - 'node_modules/better-sqlite3/**'
   - 'node_modules/sharp/**'
   - 'node_modules/@img/sharp-linux-x64/**'
