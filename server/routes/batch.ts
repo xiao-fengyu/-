@@ -17,7 +17,7 @@ const router = Router()
 // 文件上传配置
 const UPLOAD_DIR = process.env.DB_DIR
   ? path.join(process.env.DB_DIR, 'uploads')
-  : path.join(__dirname, '../../../data/uploads')
+  : path.join(process.cwd(), 'data/uploads')
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true })
 }

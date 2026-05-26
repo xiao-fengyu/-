@@ -60,6 +60,11 @@ function startBackendServer(): Promise<number> {
     console.log(`[Electron] 数据目录: ${userDataPath}`)
     console.log(`[Electron] 端口: ${port}`)
 
+    // 传递正确的项目根目录给 fork 子进程
+    // 生产环境：app.getAppPath() 指向 app.asar，dist/ 在 asar 内部
+    // 开发环境：process.cwd() 指向项目根目录
+    const appRoot = app.isPackaged ? app.getAppPath() : process.cwd()
+
     // 生产环境下，原生模块在 resources/app.asar.unpacked/node_modules/
     // 需要通过 NODE_PATH 告诉 fork 的子进程去哪里找到 better-sqlite3、sharp 等 external 模块
     const envVars: Record<string, string> = {
@@ -67,6 +72,7 @@ function startBackendServer(): Promise<number> {
       NODE_ENV: 'production',
       SERVER_PORT: String(port),
       DB_DIR: dbDir,
+      APP_ROOT: appRoot,
     }
     if (app.isPackaged) {
       const unpackedNodeModules = join(process.resourcesPath, 'app.asar.unpacked', 'node_modules')

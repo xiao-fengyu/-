@@ -25,7 +25,7 @@ const router = Router()
 // 图片存储目录：优先使用 DB_DIR 环境变量（AppImage 兼容），回退到相对路径
 const DATA_DIR = process.env.DB_DIR
   ? path.join(process.env.DB_DIR, 'images')
-  : path.join(__dirname, '../../../data/images')
+  : path.join(process.cwd(), 'data/images')
 const processor = new ImageProcessor(DATA_DIR)
 
 // 获取数据库服务

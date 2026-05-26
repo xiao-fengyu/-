@@ -7,7 +7,8 @@ import { readFileSync, existsSync, writeFileSync } from 'fs'
 import { join } from 'path'
 
 // 项目根目录（server/ 的上级）
-const ROOT_DIR = join(__dirname, '../..')
+// 用 process.cwd() 确保始终指向工作目录，不受 __dirname 解析差异影响
+const ROOT_DIR = process.cwd()
 const CONFIG_PATH = join(ROOT_DIR, 'config.json')
 const CONFIG_EXAMPLE_PATH = join(ROOT_DIR, 'config.json.example')
 
