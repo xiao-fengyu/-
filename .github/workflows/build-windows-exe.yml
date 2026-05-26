@@ -52,6 +52,11 @@ jobs:
           DEBUG: electron-builder
         shell: bash
         run: |
+          # 先打包 unpacked 版本（用于直接复制测试）
+          npx electron-builder --win --x64 --dir --publish never
+          mv "release/win-unpacked" "release/e-platform-unpacked" || true
+
+          # 再打包 NSIS 安装器
           npx electron-builder --win --x64 --publish never > build-output.log 2>&1 || {
             echo "electron-builder failed with exit code $?"
             cat build-output.log
@@ -105,3 +110,10 @@ jobs:
             release/latest*.yml
             release/*.blockmap
           if-no-files-found: error
+
+      - name: Upload unpacked build (for direct deployment)
+        uses: actions/upload-artifact@v4
+        with:
+          name: e-platform-windows-unpacked
+          path: release/e-platform-unpacked/
+          if-no-files-found: warn
