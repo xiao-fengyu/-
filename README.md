@@ -281,7 +281,8 @@ getApiBaseUrl: () => {
 |------|--------|----------|------|
 | RUN14 | 949fb5b | preload contextBridge 注入 API_BASE_URL | 白屏依旧 |
 | RUN16 | b1e3899 | dist-server asarUnpack + 路径修正 | 白屏依旧 |
-| RUN17+ | 65239dd | NODE_PATH 设置 + extraResources | 待验证 |
+| RUN17+ | 65239dd | NODE_PATH 设置 + extraResources | 白屏依旧 |
+| RUN18+ | 5a62b17 | sharp 嵌套 @img asarUnpack + NODE_PATH 双路径覆盖 | 待验证 |
 
 #### 关键踩坑
 1. **asarUnpack 不可靠** — 不同平台行为有差异，改用 `extraResources` 更确定
