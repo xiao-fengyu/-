@@ -289,6 +289,12 @@ getApiBaseUrl: () => {
 2. **global 不跨进程** — main process 的 `global` 和 preload 的 `global` 是两个独立对象
 3. **process.env 继承** — 渲染进程在创建时继承主进程的环境变量，所以 `createWindow()` 之前设置即可
 4. **esbuild --external** — 原生模块标记 external 后，必须在运行时通过 NODE_PATH 或正确路径才能找到
+5. **sharp 嵌套 @img 依赖** — sharp 的 `@img/sharp-win32-x64` 是嵌套在 `sharp/node_modules/@img/` 下的，electron-builder 的 asarUnpack glob `node_modules/@img/**` 只匹配**顶层**，不会匹配嵌套依赖。必须显式加 `sharp/node_modules/@img/**`。同时 NODE_PATH 需要覆盖两层路径（顶层 + sharp 嵌套）
+
+#### 诊断方法论（阶段八新增）
+- **WinRM 远程执行** — 通过 PowerShell WinRM (5985) 直接在 Windows 机器上运行命令，捕获 Electron fork 子进程的 stdout/stderr
+- **像素级白屏分析** — 截图后用 PIL 计算白色像素占比，区分"加载缓慢"和"真正白屏"
+- **日志驱动，不瞎猜** — 所有修复都基于实际错误堆栈，不再靠推测
 
 详见 [BUILD.md](BUILD.md) — 包含环境要求、开发模式、NSIS 打包流程、sharp 跨平台注意事项、故障排查。
 详见 [docs/USER_GUIDE.md](docs/USER_GUIDE.md) — 完整用户使用说明书。
