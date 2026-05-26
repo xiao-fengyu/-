@@ -165,6 +165,12 @@ function createWindow(): void {
   })
 }
 
+// Windows Server / 远程桌面 / GPU 驱动异常时会导致白屏
+// disableHardwareAcceleration 必须在 app.whenReady() 之前调用
+if (process.platform === 'win32') {
+  app.disableHardwareAcceleration()
+}
+
 app.whenReady().then(async () => {
   try {
     // 启动后端服务器

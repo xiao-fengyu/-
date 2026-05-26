@@ -19,6 +19,7 @@ asarUnpack:
   - 'node_modules/@img/sharp-win32-x64/**'
   - 'node_modules/@img/sharp-libvips-win32-x64/**'
   - 'node_modules/sqlite3/**'
+  - 'node_modules/detect-libc/**'
 npmRebuild: false
 extraResources:
   - from: 'dist-server'
