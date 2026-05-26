@@ -155,7 +155,9 @@ function createWindow(): void {
   if (process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../dist/index.html'))
+    // 生产模式：从本地后端 HTTP 服务器加载，避免 file:// 协议的兼容性问题
+    const port = getServerPort()
+    mainWindow.loadURL(`http://127.0.0.1:${port}`)
   }
 
   // 在 Electron 环境下，将所有外链交给系统浏览器
