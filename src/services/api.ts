@@ -5,13 +5,21 @@
 import axios from 'axios'
 
 // 动态获取 API 基础 URL
-// Electron 环境：使用相对路径（与后端同源）
-// 开发环境：使用 Vite proxy（配置在 vite.config.ts）
-export const API_BASE = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-  ? '' // 生产环境：相对路径
-  : (typeof window !== 'undefined' && (window as any).__ELECTRON__)
-    ? '' // Electron 环境：相对路径
-    : 'http://127.0.0.1:3001' // 开发环境：后端端口
+// 优先级：Electron preload 注入 > Electron 环境 > 开发环境
+export const API_BASE = (() => {
+  if (typeof window !== 'undefined') {
+    // Electron 环境：preload 脚本通过 contextBridge 注入的 API 地址
+    if ((window as any).__ELECTRON__ && (window as any).electronAPI?.getApiBaseUrl) {
+      return (window as any).electronAPI.getApiBaseUrl()
+    }
+    // 开发环境：Vite dev server + proxy
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://127.0.0.1:3001'
+    }
+  }
+  // 兜底：开发环境默认地址
+  return 'http://127.0.0.1:3001'
+})()
 
 const api = axios.create({
   baseURL: API_BASE,

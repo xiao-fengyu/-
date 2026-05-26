@@ -148,14 +148,19 @@ app.whenReady().then(async () => {
     // 启动后端服务器
     await startBackendServer()
 
-    // 设置全局 API 地址供渲染进程使用
+    // 设置全局 API 地址，通过 preload + contextBridge 注入渲染进程
     const port = getServerPort()
-    process.env.API_BASE_URL = `http://127.0.0.1:${port}`
+    const apiBaseUrl = `http://127.0.0.1:${port}`
+    ;(global as any).__API_BASE_URL = apiBaseUrl
+    process.env.API_BASE_URL = apiBaseUrl
 
     createWindow()
   } catch (err) {
     console.error('[Electron] 后端启动失败:', err)
-    // 仍然创建窗口，但前端会显示错误
+    // 仍然设置 API 地址，前端会显示错误
+    const port = getServerPort()
+    ;(global as any).__API_BASE_URL = `http://127.0.0.1:${port}`
+    process.env.API_BASE_URL = `http://127.0.0.1:${port}`
     createWindow()
   }
 
