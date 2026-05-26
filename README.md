@@ -282,7 +282,8 @@ getApiBaseUrl: () => {
 | RUN14 | 949fb5b | preload contextBridge 注入 API_BASE_URL | 白屏依旧 |
 | RUN16 | b1e3899 | dist-server asarUnpack + 路径修正 | 白屏依旧 |
 | RUN17+ | 65239dd | NODE_PATH 设置 + extraResources | 白屏依旧 |
-| RUN18+ | 5a62b17 | sharp 嵌套 @img asarUnpack + NODE_PATH 双路径覆盖 | 待验证 |
+| RUN18+ | 5a62b17 | sharp 嵌套 @img asarUnpack + NODE_PATH 双路径覆盖 | 白屏依旧 |
+| RUN19+ | （待构建） | NODE_PATH 增加 asar/node_modules 路径，修复 detect-libc 缺失 | 待验证 |
 
 #### 关键踩坑
 1. **asarUnpack 不可靠** — 不同平台行为有差异，改用 `extraResources` 更确定
@@ -290,6 +291,7 @@ getApiBaseUrl: () => {
 3. **process.env 继承** — 渲染进程在创建时继承主进程的环境变量，所以 `createWindow()` 之前设置即可
 4. **esbuild --external** — 原生模块标记 external 后，必须在运行时通过 NODE_PATH 或正确路径才能找到
 5. **sharp 嵌套 @img 依赖** — sharp 的 `@img/sharp-win32-x64` 是嵌套在 `sharp/node_modules/@img/` 下的，electron-builder 的 asarUnpack glob `node_modules/@img/**` 只匹配**顶层**，不会匹配嵌套依赖。必须显式加 `sharp/node_modules/@img/**`。同时 NODE_PATH 需要覆盖两层路径（顶层 + sharp 嵌套）
+6. **NODE_PATH 不能只指向 unpacked** — `detect-libc` 等纯 JS 依赖在 asar 内，NODE_PATH 必须同时包含 `app.asar/node_modules`，否则 fork 子进程找不到这些模块
 
 #### 诊断方法论（阶段八新增）
 - **WinRM 远程执行** — 通过 PowerShell WinRM (5985) 直接在 Windows 机器上运行命令，捕获 Electron fork 子进程的 stdout/stderr

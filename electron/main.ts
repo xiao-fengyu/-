@@ -72,7 +72,9 @@ function startBackendServer(): Promise<number> {
       const unpackedNodeModules = join(process.resourcesPath, 'app.asar.unpacked', 'node_modules')
       // sharp 的嵌套 @img 原生模块在 sharp/node_modules/@img/ 中
       const sharpNestedModules = join(unpackedNodeModules, 'sharp', 'node_modules')
-      envVars.NODE_PATH = `${unpackedNodeModules}${process.platform === 'win32' ? ';' : ':'}${sharpNestedModules}`
+      // 同时包含 asar 内的 node_modules，让 fork 子进程能找到 detect-libc 等纯 JS 依赖
+      const asarNodeModules = join(process.resourcesPath, 'app.asar', 'node_modules')
+      envVars.NODE_PATH = `${unpackedNodeModules}${process.platform === 'win32' ? ';' : ':'}${sharpNestedModules}${process.platform === 'win32' ? ';' : ':'}${asarNodeModules}`
       console.log(`[Electron] NODE_PATH=${envVars.NODE_PATH}`)
     }
 
