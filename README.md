@@ -143,6 +143,7 @@ Electron 打包后，数据目录位于 `%APPDATA%/e-platform/data/`。
 | 阶段五：批量模式 | ✅ 已完成 | 批量导入/生成/确认/发布 + 队列管理 + 失败重试 |
 | 阶段六：测试 & 打包发布 | ✅ 已完成 | TypeScript 编译/构建通过 + 原生模块重建 + 打包管线验证 + 提供商测试脚本 + 使用说明书 |
 | 阶段七：生产环境修复 | ✅ 已完成 | 统一配置系统 + Electron 后端集成 + 端口统一 + OAuth 回调 + 首次引导 |
+| 阶段八：Windows 安装包白屏修复 | ✅ 已完成 | Electron fork 子进程路径修正 + NODE_PATH 原生模块定位 + preload API 注入 |
 
 ### 已完成详情
 - [x] 项目骨架搭建（Electron + React + TypeScript + Vite）
@@ -220,6 +221,73 @@ Electron 打包后，数据目录位于 `%APPDATA%/e-platform/data/`。
 
 > **注意**：服务器外网阻断导致 NSIS/deb/AppImage 无法生成安装包文件，
 > 但打包管线已完全验证。在 Windows 开发机上运行 `npm run electron:package:win` 即可一键生成 .exe 安装包。
+
+### 阶段八：Windows 安装包白屏修复 ✅
+
+#### 问题描述
+Windows 安装包（NSIS .exe）安装后启动，全屏白屏，无法渲染 UI。
+
+#### 根因分析
+经过多次迭代排查，定位到三个相互关联的问题：
+
+| # | 问题 | 影响 |
+|---|------|------|
+| 1 | `dist-server/index.js` 被打包进 `app.asar` | `fork()` 无法执行 asar 内的 JS 文件，后端无法启动 |
+| 2 | esbuild 编译时 `better-sqlite3` 和 `sharp` 标记为 `--external` | 这两个原生模块未被打包进 `dist-server/index.js`，需要运行时动态 `require()` |
+| 3 | fork 子进程未设置 `NODE_PATH` | Node.js 找不到 `app.asar.unpacked/node_modules/` 中的原生模块，后端启动崩溃 |
+| 4 | preload.ts 用 `global.__API_BASE_URL` 读主进程变量 | main 和 preload 是两个独立 Node.js 进程，global 不共享 |
+
+#### 修复方案
+
+**1. electron-builder.yml — 解包 + extraResources**
+```yaml
+# asarUnpack：原生模块必须解包
+asarUnpack:
+  - 'node_modules/better-sqlite3/**'
+  - 'node_modules/sharp/**'
+  # ... 其他原生模块
+
+# extraResources：dist-server 独立于 asar，路径 100% 确定
+extraResources:
+  - from: 'dist-server'
+    to: 'dist-server'
+    filter: ['**/*']
+```
+
+**2. electron/main.ts — 正确路径 + NODE_PATH**
+```typescript
+// 生产环境路径：extraResources 解压到 resources/dist-server/
+if (app.isPackaged) {
+  serverPath = join(process.resourcesPath, 'dist-server', 'index.js')
+}
+
+// fork 时设置 NODE_PATH，让子进程找到原生模块
+if (app.isPackaged) {
+  envVars.NODE_PATH = join(process.resourcesPath, 'app.asar.unpacked', 'node_modules')
+}
+```
+
+**3. electron/preload.ts — 用环境变量传递 API 地址**
+```typescript
+// 主进程在 createWindow() 之前设置 process.env.API_BASE_URL
+// 渲染进程继承主进程环境，preload 可读取
+getApiBaseUrl: () => {
+  return process.env.API_BASE_URL || 'http://127.0.0.1:3001'
+}
+```
+
+#### CI 构建历史
+| 构建 | Commit | 修复内容 | 结果 |
+|------|--------|----------|------|
+| RUN14 | 949fb5b | preload contextBridge 注入 API_BASE_URL | 白屏依旧 |
+| RUN16 | b1e3899 | dist-server asarUnpack + 路径修正 | 白屏依旧 |
+| RUN17+ | 65239dd | NODE_PATH 设置 + extraResources | 待验证 |
+
+#### 关键踩坑
+1. **asarUnpack 不可靠** — 不同平台行为有差异，改用 `extraResources` 更确定
+2. **global 不跨进程** — main process 的 `global` 和 preload 的 `global` 是两个独立对象
+3. **process.env 继承** — 渲染进程在创建时继承主进程的环境变量，所以 `createWindow()` 之前设置即可
+4. **esbuild --external** — 原生模块标记 external 后，必须在运行时通过 NODE_PATH 或正确路径才能找到
 
 详见 [BUILD.md](BUILD.md) — 包含环境要求、开发模式、NSIS 打包流程、sharp 跨平台注意事项、故障排查。
 详见 [docs/USER_GUIDE.md](docs/USER_GUIDE.md) — 完整用户使用说明书。
