@@ -143,7 +143,8 @@ Electron 打包后，数据目录位于 `%APPDATA%/e-platform/data/`。
 | 阶段五：批量模式 | ✅ 已完成 | 批量导入/生成/确认/发布 + 队列管理 + 失败重试 |
 | 阶段六：测试 & 打包发布 | ✅ 已完成 | TypeScript 编译/构建通过 + 原生模块重建 + 打包管线验证 + 提供商测试脚本 + 使用说明书 |
 | 阶段七：生产环境修复 | ✅ 已完成 | 统一配置系统 + Electron 后端集成 + 端口统一 + OAuth 回调 + 首次引导 |
-| 阶段八：Windows 安装包白屏修复 | 🔄 修复中 | Electron fork 子进程路径修正 + NODE_PATH 原生模块定位 + preload API 注入 + **file:// 协议替换为 HTTP** |
+| 阶段八：Windows 安装包白屏修复 | ✅ 已完成 | Electron fork 子进程路径修正 + NODE_PATH 原生模块定位 + preload API 注入 + **file:// 协议替换为 HTTP** |
+| 阶段九：图生图功能 | ✅ 已完成 | IImageProvider 扩展 generateFromImage + Wanx/CustomProvider 图生图实现 + 前端参考图上传 + Tab 切换 |
 
 ### 已完成详情
 - [x] 项目骨架搭建（Electron + React + TypeScript + Vite）
@@ -305,6 +306,26 @@ getApiBaseUrl: () => {
 
 详见 [BUILD.md](BUILD.md) — 包含环境要求、开发模式、NSIS 打包流程、sharp 跨平台注意事项、故障排查。
 详见 [docs/USER_GUIDE.md](docs/USER_GUIDE.md) — 完整用户使用说明书。
+
+### 阶段九：图生图功能 ✅
+
+#### 需求背景
+用户在实际使用中难以精确描述想要的图片效果，需要上传参考图（模板/示例图），配合简短文字描述，让 AI 基于参考图生成新图。
+
+#### 实现内容
+- **接口扩展**：`IImageProvider` 新增可选方法 `generateFromImage()` + `ImageToImageOptions` 类型
+- **WanxProvider**：对接 DashScope image2image 异步 API，支持 base64 参考图输入
+- **CustomProvider**：灵活传递 reference image 参数，兼容多种自定义图生图端点
+- **后端路由**：`POST /api/images/generate-from-image`，multer 上传图片 + base64 转换
+- **前端 UI**：ImageGenerator 页面新增「文生图 / 图生图」Tab 切换 + 拖拽上传参考图区
+- **数据库**：图片 type 新增 `'image-to-image'` 记录，支持生成溯源
+
+#### 验收标准
+- [x] 用户能上传图片（拖拽 + 预览）
+- [x] 输入描述后能生成新图
+- [x] 原有文生图功能完全不受影响
+- [x] TypeScript 编译零错误
+- [x] 所有改动已 git push，CI 构建通过
 
 ## 配置说明
 
