@@ -72,6 +72,21 @@ export interface IImageProvider {
 
   /** 验证配置是否有效 */
   validateConfig(config: ImageProviderConfig): Promise<boolean>
+
+  /**
+   * 图生图 — 基于参考图 + 文字描述生成新图
+   * @param referenceImage 参考图（本地路径或 base64）
+   * @param prompt 文字描述
+   * @param count 生成数量
+   * @param options 图生图选项（强度、相关性等）
+   * @returns 图片 URL 数组
+   */
+  generateFromImage?(
+    referenceImage: string,
+    prompt: string,
+    count: number,
+    options?: ImageToImageOptions
+  ): Promise<ImageGenerationResponse>
 }
 
 /** 生成选项 */
@@ -82,6 +97,18 @@ export interface GenerationOptions {
   quality?: string
   seed?: number
   [key: string]: unknown
+}
+
+/** 图生图选项 */
+export interface ImageToImageOptions extends GenerationOptions {
+  /** 参考图路径（本地文件或 base64） */
+  referenceImagePath?: string
+  /** 参考图 base64 数据（与 referenceImagePath 二选一） */
+  referenceImageBase64?: string
+  /** 生成强度 (0-1)，越高越偏离参考图 */
+  strength?: number
+  /** 提示词相关性 (1-20)，越高越遵循 prompt */
+  cfgScale?: number
 }
 
 /** 生成响应 */
