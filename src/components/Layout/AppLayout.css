@@ -1,8 +1,11 @@
 .app-layout {
   min-height: 100vh;
+  background: var(--bg, #f8fafc);
 }
 
 .app-sider {
+  background: #ffffff !important;
+  border-right: 1px solid #e2e8f0;
   position: relative;
 }
 
@@ -11,11 +14,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
   font-size: 18px;
   font-weight: bold;
   letter-spacing: 1px;
   margin-top: 12px;
+  padding: 0 20px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .sidebar-toggle {
@@ -33,17 +40,18 @@
   justify-content: center;
   z-index: 10;
   transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-toggle:hover {
-  background: #1677ff;
-  border-color: #1677ff;
+  background: #6366f1;
+  border-color: #6366f1;
   color: #fff;
 }
 
 .app-content {
-  padding: 20px;
-  background: #f0f2f5;
+  padding: 0;
+  background: #f8fafc;
   min-height: calc(100vh - 0px);
   overflow-y: auto;
 }
