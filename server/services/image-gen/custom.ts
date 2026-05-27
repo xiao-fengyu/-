@@ -8,6 +8,7 @@ import type {
   IImageProvider,
   ImageGenerationResponse,
   GenerationOptions,
+  ImageToImageOptions,
 } from './types'
 
 export class CustomProvider implements IImageProvider {
@@ -98,5 +99,61 @@ export class CustomProvider implements IImageProvider {
     } catch {
       return false
     }
+  }
+
+  async generateFromImage(
+    referenceImage: string,
+    prompt: string,
+    count: number,
+    options?: ImageToImageOptions
+  ): Promise<ImageGenerationResponse> {
+    // CustomProvider 灵活传递图生图参数
+    const payload: Record<string, unknown> = {
+      model: this.model,
+      prompt,
+      n: count,
+      image: referenceImage, // 参考图（base64 或 URL）
+      ...this.defaultParams,
+      ...options,
+    }
+
+    const response = await axios.post(this.endpoint, payload, {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      timeout: 120000,
+    })
+
+    const data = response.data
+
+    // OpenAI 格式: { data: [{ url, b64_json }] }
+    if (Array.isArray(data.data)) {
+      return {
+        created: data.created || Math.floor(Date.now() / 1000),
+        images: data.data.map((item: { url?: string; b64_json?: string }) => ({
+          url: item.url,
+          base64: item.b64_json,
+        })),
+      }
+    }
+
+    // 直接返回 images 数组
+    if (Array.isArray(data.images)) {
+      return {
+        created: data.created || Math.floor(Date.now() / 1000),
+        images: data.images,
+      }
+    }
+
+    // 单个 url 字段
+    if (data.url) {
+      return {
+        created: data.created || Math.floor(Date.now() / 1000),
+        images: [{ url: data.url }],
+      }
+    }
+
+    throw new Error(`CustomProvider 图生图响应无法解析: ${JSON.stringify(data).slice(0, 500)}`)
   }
 }
