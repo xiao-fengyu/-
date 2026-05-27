@@ -7,10 +7,12 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as crypto from 'crypto'
 import axios from 'axios'
+import multer from 'multer'
 import { ImageProcessor, PDD_REQUIREMENTS } from '../services/image-processor'
 import {
   createProvider,
   type GenerationOptions,
+  type ImageToImageOptions,
 } from '../services/image-gen'
 import {
   PROMPT_TEMPLATES,
@@ -27,6 +29,20 @@ const DATA_DIR = process.env.DB_DIR
   ? path.join(process.env.DB_DIR, 'images')
   : path.join(process.cwd(), 'data/images')
 const processor = new ImageProcessor(DATA_DIR)
+
+// 图生图文件上传配置（内存存储，直接转 base64）
+const i2iStorage = multer.memoryStorage()
+const uploadImage = multer({
+  storage: i2iStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB 限制
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true)
+    } else {
+      cb(new Error('只支持图片文件'))
+    }
+  },
+})
 
 // 获取数据库服务
 function getDb(): DatabaseService {
@@ -188,6 +204,164 @@ router.post('/generate', async (req, res) => {
     res.status(500).json({
       success: false,
       error: err.message || '图片生成失败',
+    })
+  }
+})
+
+// ============================================================
+// 图生图
+// ============================================================
+
+/** 图生图 — 基于参考图 + prompt 生成新图 */
+router.post('/generate-from-image', uploadImage.single('referenceImage'), async (req, res) => {
+  try {
+    const file = req.file
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        error: '需要上传参考图（referenceImage 字段）',
+      })
+    }
+
+    // 解析 JSON 参数
+    let params: Record<string, unknown>
+    try {
+      params = req.body.params ? JSON.parse(req.body.params) : {}
+    } catch {
+      return res.status(400).json({ success: false, error: 'params JSON 格式错误' })
+    }
+
+    const {
+      providerConfig,
+      prompt,
+      count = 4,
+      width = 1024,
+      height = 1024,
+      strength,
+      cfgScale,
+      seed,
+    } = params as {
+      providerConfig?: Record<string, unknown>
+      prompt?: string
+      count?: number
+      width?: number
+      height?: number
+      strength?: number
+      cfgScale?: number
+      seed?: number
+    }
+
+    if (!providerConfig || !(providerConfig as any).apiKey) {
+      return res.status(400).json({ success: false, error: '缺少提供商配置或 API Key' })
+    }
+    if (!prompt) {
+      return res.status(400).json({ success: false, error: 'prompt 不能为空' })
+    }
+
+    // 将上传的图片转为 base64
+    const referenceImageBase64 = file.buffer.toString('base64')
+    const mimeType = file.mimetype || 'image/png'
+    const imageDataUri = `data:${mimeType};base64,${referenceImageBase64}`
+
+    // 创建提供商实例
+    const provider = createProvider(providerConfig as any)
+
+    // 检查是否支持图生图
+    if (!provider.generateFromImage) {
+      return res.status(400).json({
+        success: false,
+        error: `提供商 ${(providerConfig as any).name} 不支持图生图功能`,
+      })
+    }
+
+    // 调用图生图
+    const options: ImageToImageOptions = {
+      width,
+      height,
+      strength,
+      cfgScale,
+      seed,
+      referenceImageBase64: imageDataUri,
+    }
+
+    const response = await provider.generateFromImage(imageDataUri, prompt, count, options)
+
+    // 下载图片到本地
+    const results: Array<{
+      localPath: string
+      url: string
+      width: number
+      height: number
+      fileSize: number
+      format: string
+    }> = []
+
+    for (const img of response.images) {
+      const imageUrl = img.url || img.base64
+      if (!imageUrl) continue
+
+      let localPath: string
+
+      if (img.base64) {
+        const hash = crypto.randomBytes(8).toString('hex')
+        localPath = path.join(DATA_DIR, `${hash}.png`)
+        fs.writeFileSync(localPath, Buffer.from(img.base64, 'base64'))
+      } else {
+        const dl = await axios.get(imageUrl, {
+          responseType: 'arraybuffer',
+          timeout: 30000,
+        })
+        const hash = crypto.randomBytes(8).toString('hex')
+        const ext = imageUrl.includes('.png') ? 'png' : 'jpg'
+        localPath = path.join(DATA_DIR, `${hash}.${ext}`)
+        fs.writeFileSync(localPath, dl.data)
+      }
+
+      const stats = fs.statSync(localPath)
+      const metadata = await processor.checkCompliance(localPath)
+
+      results.push({
+        localPath,
+        url: imageUrl,
+        width: metadata.width,
+        height: metadata.height,
+        fileSize: stats.size,
+        format: metadata.format,
+      })
+    }
+
+    // 保存到数据库
+    const db = getDb()
+    for (const r of results) {
+      db.addImage({
+        product_id: (params as any).productId || null,
+        local_path: r.localPath,
+        url: r.url,
+        type: 'image-to-image',
+        provider: (providerConfig as any).name,
+        prompt,
+        status: 'generated',
+        width: r.width,
+        height: r.height,
+        file_size: r.fileSize,
+      })
+    }
+
+    res.json({
+      success: true,
+      data: {
+        prompt,
+        provider: (providerConfig as any).name,
+        images: results,
+        count: results.length,
+        referenceImage: `data:${mimeType};base64,...(truncated)`,
+      },
+    })
+  } catch (err: any) {
+    console.error('[图生图失败]', err.message)
+    res.status(500).json({
+      success: false,
+      error: err.message || '图生图失败',
     })
   }
 })
