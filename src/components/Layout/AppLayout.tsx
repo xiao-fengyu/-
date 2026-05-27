@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { Layout, Menu, ConfigProvider, theme, Divider } from 'antd'
+import { Layout, Menu, ConfigProvider, theme } from 'antd'
 import {
   DashboardOutlined,
   PictureOutlined,
@@ -12,7 +12,6 @@ import {
   FileTextOutlined,
   BarChartOutlined,
   EditOutlined,
-  FileImageOutlined,
 } from '@ant-design/icons'
 
 import DashboardPage from '../../pages/Dashboard'
@@ -110,24 +109,23 @@ function WorkflowBar() {
   )
 }
 
-// 分组菜单项类型
-type MenuItem = {
-  key: string
-  icon?: ReactNode
-  label: string
-  children?: MenuItem[]
-  type?: 'group'
-}
 
-const menuItems: MenuItem[] = [
+// Ant Design Menu 分组类型
+const groupItem = (key: string, label: string) => ({
+  key,
+  type: 'group' as const,
+  label,
+})
+
+const menuItems: (ReturnType<typeof groupItem> | { key: string; icon: ReactNode; label: string })[] = [
   { key: '/dashboard', icon: <DashboardOutlined />, label: '工作台' },
-  { type: 'group', label: '生 产', key: 'group-prod' },
+  groupItem('group-prod', '生 产'),
   { key: '/image/generate', icon: <PictureOutlined />, label: 'AI 生成' },
   { key: '/image/editor', icon: <EditOutlined />, label: '图片编辑' },
-  { type: 'group', label: '发 布', key: 'group-pub' },
+  groupItem('group-pub', '发 布'),
   { key: '/publish', icon: <CloudUploadOutlined />, label: '发布商品' },
   { key: '/batch', icon: <FileTextOutlined />, label: '批量任务' },
-  { type: 'group', label: '管 理', key: 'group-mgr' },
+  groupItem('group-mgr', '管 理'),
   { key: '/platforms', icon: <ShopOutlined />, label: '平台管理' },
   { key: '/logs', icon: <BarChartOutlined />, label: '日志' },
   { key: '/settings', icon: <SettingOutlined />, label: '设置' },
@@ -141,9 +139,10 @@ function AppMenu() {
   // 将分组菜单项渲染为自定义 DOM
   const renderMenuItems = () => {
     const items = menuItems.map((item) => {
-      if (item.type === 'group') {
+      if ('type' in item && item.type === 'group') {
         return {
           key: item.key,
+          type: 'group' as const,
           label: (
             <span style={{
               fontSize: 10,
@@ -155,15 +154,12 @@ function AppMenu() {
               {item.label}
             </span>
           ),
-          disabled: true,
-          style: { pointerEvents: 'none' },
         }
       }
-      return {
-        key: item.key,
-        icon: item.icon,
-        label: item.label,
+      if ('icon' in item && item.icon) {
+        return { key: item.key, icon: item.icon, label: item.label }
       }
+      return { key: item.key, label: item.label }
     })
     return items
   }

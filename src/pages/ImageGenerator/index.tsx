@@ -1,13 +1,12 @@
-import { Card, Input, Button, Select, Space, Tag, Row, Col, Image, Spin, message, Divider, Tooltip, Tabs, Upload } from 'antd'
+import { Input, Button, Select, Image, Spin, message, Upload } from 'antd'
 import { useState, useEffect } from 'react'
 import {
-  PictureOutlined, ReloadOutlined, CheckCircleOutlined, CloseCircleOutlined,
-  DeleteOutlined, EditOutlined, ThunderboltOutlined,
-  FileTextOutlined, UploadOutlined, SwapOutlined
+  DeleteOutlined, ThunderboltOutlined,
+  EditOutlined, DownloadOutlined
 } from '@ant-design/icons'
 import {
   fetchTemplates, renderTemplate, generateImages, generateImagesFromImage,
-  checkCompliance, processImage, fetchImages, deleteImage,
+  checkCompliance, fetchImages, deleteImage,
 } from '@/services/api'
 import { useAppStore } from '@/store'
 import './ImageGenerator.css'
@@ -34,12 +33,17 @@ interface GeneratedImage {
   compliance?: { compliant: boolean; issues: string[] }
 }
 
+const TEMPLATE_ICONS: Record<string, string> = {
+  '服装鞋包': '👗', '数码家电': '📱', '家居日用': '🏠',
+  '食品生鲜': '🍎', '美妆个护': '💄', '运动户外': '🎮',
+  '文具办公': '📚', '自定义': '🔧',
+}
+
 export default function ImageGeneratorPage() {
   const { providers } = useAppStore()
 
   // 状态
   const [mode, setMode] = useState<'text2image' | 'image2image'>('text2image')
-  const [templates, setTemplates] = useState<PromptTemplate[]>([])
   const [categories, setCategories] = useState<string[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null)
@@ -52,15 +56,12 @@ export default function ImageGeneratorPage() {
   const [generating, setGenerating] = useState(false)
   const [images, setImages] = useState<GeneratedImage[]>([])
   const [historyImages, setHistoryImages] = useState<any[]>([])
-  const [showTemplates, setShowTemplates] = useState(false)
-  // 图生图相关状态
   const [referenceImage, setReferenceImage] = useState<{ file: File; preview: string } | null>(null)
 
   // 加载模板和历史图片
   useEffect(() => {
     fetchTemplates().then((res: any) => {
       if (res.success) {
-        setTemplates(res.data.templates)
         setCategories(res.data.categories)
       }
     }).catch(() => message.error('加载模板失败'))
@@ -69,19 +70,6 @@ export default function ImageGeneratorPage() {
       if (res.success) setHistoryImages(res.data.images)
     }).catch(() => {})
   }, [])
-
-  // 选择模板时渲染 prompt
-  const handleSelectTemplate = (tpl: PromptTemplate) => {
-    setSelectedTemplate(tpl)
-    if (subject) {
-      renderTemplate(tpl.id, { subject }).then((res: any) => {
-        if (res.success) setPrompt(res.data.prompt)
-      }).catch(() => setPrompt(tpl.prompt.replace('{subject}', subject || '商品')))
-    } else {
-      setPrompt(tpl.prompt)
-    }
-    setShowTemplates(false)
-  }
 
   // 主体变化时重新渲染 prompt
   useEffect(() => {
@@ -104,32 +92,18 @@ export default function ImageGeneratorPage() {
     try {
       const res = await generateImages({
         providerConfig: {
-          id: provider.id,
-          name: provider.name,
-          type: provider.type,
-          endpoint: provider.endpoint,
-          apiKey: provider.apiKey,
-          model: provider.model,
-          maxImages: provider.maxImages,
-          defaultParams: {},
-          isDefault: provider.isDefault,
+          id: provider.id, name: provider.name, type: provider.type,
+          endpoint: provider.endpoint, apiKey: provider.apiKey,
+          model: provider.model, maxImages: provider.maxImages,
+          defaultParams: {}, isDefault: provider.isDefault,
         },
-        prompt: prompt.trim(),
-        count,
-        width,
-        height,
+        prompt: prompt.trim(), count, width, height,
       })
 
       if (res.success) {
-        setImages(res.data.images.map((img: GeneratedImage) => ({
-          ...img,
-          selected: false,
-        })))
+        setImages(res.data.images.map((img: GeneratedImage) => ({ ...img, selected: false })))
         message.success(`成功生成 ${res.data.count} 张图片`)
-        // 刷新历史
-        fetchImages().then((r: any) => {
-          if (r.success) setHistoryImages(r.data.images)
-        })
+        fetchImages().then((r: any) => { if (r.success) setHistoryImages(r.data.images) })
       } else {
         message.error(res.error || '生成失败')
       }
@@ -154,31 +128,18 @@ export default function ImageGeneratorPage() {
       const res = await generateImagesFromImage({
         referenceImage: referenceImage.file,
         providerConfig: {
-          id: provider.id,
-          name: provider.name,
-          type: provider.type,
-          endpoint: provider.endpoint,
-          apiKey: provider.apiKey,
-          model: provider.model,
-          maxImages: provider.maxImages,
-          defaultParams: {},
-          isDefault: provider.isDefault,
+          id: provider.id, name: provider.name, type: provider.type,
+          endpoint: provider.endpoint, apiKey: provider.apiKey,
+          model: provider.model, maxImages: provider.maxImages,
+          defaultParams: {}, isDefault: provider.isDefault,
         },
-        prompt: prompt.trim(),
-        count,
-        width,
-        height,
+        prompt: prompt.trim(), count, width, height,
       })
 
       if (res.success) {
-        setImages(res.data.images.map((img: GeneratedImage) => ({
-          ...img,
-          selected: false,
-        })))
+        setImages(res.data.images.map((img: GeneratedImage) => ({ ...img, selected: false })))
         message.success(`成功生成 ${res.data.count} 张图片`)
-        fetchImages().then((r: any) => {
-          if (r.success) setHistoryImages(r.data.images)
-        })
+        fetchImages().then((r: any) => { if (r.success) setHistoryImages(r.data.images) })
       } else {
         message.error(res.error || '生成失败')
       }
@@ -197,28 +158,6 @@ export default function ImageGeneratorPage() {
         const updated = [...images]
         updated[index] = { ...updated[index], compliance: res.data }
         setImages(updated)
-      }
-    } catch (err: any) {
-      message.error(err.message)
-    }
-  }
-
-  // 自动处理
-  const handleAutoProcess = async (img: GeneratedImage, index: number) => {
-    try {
-      const res = await processImage(img.localPath, undefined, 800, 800)
-      if (res.success) {
-        const updated = [...images]
-        updated[index] = {
-          ...updated[index],
-          localPath: res.data.outputPath,
-          width: res.data.width,
-          height: res.data.height,
-          fileSize: res.data.fileSize,
-          format: res.data.format,
-        }
-        setImages(updated)
-        message.success('图片已自动处理')
       }
     } catch (err: any) {
       message.error(err.message)
@@ -247,343 +186,229 @@ export default function ImageGeneratorPage() {
 
   return (
     <div className="image-generator">
-      <div className="generator-header">
-        <h1>AI 图片生成</h1>
-        <p className="subtitle">输入商品描述或选择模板，AI 自动生成高质量商品图</p>
-      </div>
-
-      {/* 生成模式切换 */}
-      <Tabs
-        activeKey={mode}
-        onChange={(key) => setMode(key as 'text2image' | 'image2image')}
-        items={[
-          {
-            key: 'text2image',
-            label: <span><FileTextOutlined /> 文生图</span>,
-          },
-          {
-            key: 'image2image',
-            label: <span><SwapOutlined /> 图生图</span>,
-          },
-        ]}
-        style={{ marginBottom: 16 }}
-      />
-
-      <Row gutter={16}>
-        {/* 左侧：输入区 */}
-        <Col span={10}>
-          <Card title={
-            <span><FileTextOutlined /> Prompt 设置</span>
-          } className="input-card">
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
-              {/* 图生图：参考图上传 */}
-              {mode === 'image2image' && (
-                <div>
-                  <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
-                    参考图 <span style={{ color: '#999', fontWeight: 400 }}>（上传模板/示例图）</span>
-                  </label>
-                  <Upload.Dragger
-                    name="referenceImage"
-                    accept="image/*"
-                    showUploadList={false}
-                    maxCount={1}
-                    beforeUpload={(file) => {
-                      const reader = new FileReader()
-                      reader.onload = () => {
-                        setReferenceImage({ file, preview: reader.result as string })
-                      }
-                      reader.readAsDataURL(file)
-                      return false // 阻止自动上传
-                    }}
-                    onRemove={() => setReferenceImage(null)}
-                  >
-                    <p className="ant-upload-drag-icon">
-                      <UploadOutlined />
-                    </p>
-                    <p className="ant-upload-text">点击或拖拽上传参考图</p>
-                    <p className="ant-upload-hint">支持 JPG/PNG/WebP，最大 10MB</p>
-                  </Upload.Dragger>
-                  {referenceImage && (
-                    <div style={{ marginTop: 8, textAlign: 'center' }}>
-                      <img
-                        src={referenceImage.preview}
-                        alt="参考图预览"
-                        style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, border: '1px solid #eee' }}
-                      />
-                      <Button
-                        size="small"
-                        danger
-                        style={{ marginTop: 8 }}
-                        onClick={() => setReferenceImage(null)}
-                      >
-                        移除参考图
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 模板选择（仅文生图模式） */}
-              {mode === 'text2image' && (
-                <>
-                <Button
-                  icon={<FileTextOutlined />}
-                  onClick={() => setShowTemplates(!showTemplates)}
-                  block
-                >
-                  {selectedTemplate ? `已选: ${selectedTemplate.name}` : '选择电商模板'}
-                </Button>
-
-                {showTemplates && (
-                  <Card size="small" style={{ marginTop: 8, maxHeight: 300, overflow: 'auto' }}>
-                    <Space direction="vertical" style={{ width: '100%' }} size="small">
-                      {categories.map(cat => (
-                        <Button
-                          key={cat}
-                          size="small"
-                          type={selectedCategory === cat ? 'primary' : 'default'}
-                          onClick={() => setSelectedCategory(cat === selectedCategory ? '' : cat)}
-                        >
-                          {cat}
-                        </Button>
-                      ))}
-                      <Divider style={{ margin: '4px 0' }} />
-                      {templates
-                        .filter(t => !selectedCategory || t.category === selectedCategory)
-                        .map(tpl => (
-                          <Button
-                            key={tpl.id}
-                            size="small"
-                            block
-                            type={selectedTemplate?.id === tpl.id ? 'primary' : 'text'}
-                            onClick={() => handleSelectTemplate(tpl)}
-                          >
-                            <div style={{ textAlign: 'left' }}>
-                              <div>{tpl.name}</div>
-                              <div style={{ fontSize: 11, color: '#999' }}>{tpl.description}</div>
-                            </div>
-                          </Button>
-                        ))
-                      }
-                    </Space>
-                  </Card>
-                )}
-                </>
-              )}
-
-              {/* 商品主体 */}
-              <div>
-                <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
-                  商品主体 <span style={{ color: '#999', fontWeight: 400 }}>（选填，用于替换模板中的{'{subject}'}）</span>
-                </label>
-                <Input
-                  placeholder="例如：白色陶瓷马克杯"
-                  value={subject}
-                  onChange={e => setSubject(e.target.value)}
-                  allowClear
-                />
-              </div>
-
-              {/* Prompt 输入 */}
-              <div>
-                <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
-                  生成描述
-                </label>
-                <TextArea
-                  rows={5}
-                  placeholder="描述你的商品，例如：白色陶瓷马克杯，简约风格，纯白背景，自然光照"
-                  value={prompt}
-                  onChange={e => setPrompt(e.target.value)}
-                />
-              </div>
-
-              {/* 提供商 */}
-              <div>
-                <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>AI 提供商</label>
-                <Select
-                  style={{ width: '100%' }}
-                  placeholder="选择提供商（需先在设置中添加）"
-                  value={selectedProvider || undefined}
-                  onChange={setSelectedProvider}
-                  options={providers.map((p: { id: string; name: string }) => ({ label: p.name, value: p.id }))}
-                />
-              </div>
-
-              {/* 生成参数 */}
-              <div>
-                <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>生成参数</label>
-                <Row gutter={8}>
-                  <Col span={8}>
-                    <Select
-                      style={{ width: '100%' }}
-                      value={count}
-                      onChange={setCount}
-                      options={[
-                        { label: '1 张', value: 1 },
-                        { label: '2 张', value: 2 },
-                        { label: '4 张', value: 4 },
-                        { label: '8 张', value: 8 },
-                      ]}
-                    />
-                  </Col>
-                  <Col span={8}>
-                    <Select
-                      style={{ width: '100%' }}
-                      value={width}
-                      onChange={setWidth}
-                      options={[
-                        { label: '512', value: 512 },
-                        { label: '768', value: 768 },
-                        { label: '1024', value: 1024 },
-                        { label: '1280', value: 1280 },
-                      ]}
-                    />
-                  </Col>
-                  <Col span={8}>
-                    <Select
-                      style={{ width: '100%' }}
-                      value={height}
-                      onChange={setHeight}
-                      options={[
-                        { label: '512', value: 512 },
-                        { label: '768', value: 768 },
-                        { label: '1024', value: 1024 },
-                        { label: '1280', value: 1280 },
-                      ]}
-                    />
-                  </Col>
-                </Row>
-              </div>
-
-              <Button
-                type="primary"
-                size="large"
-                icon={<ThunderboltOutlined />}
-                loading={generating}
-                onClick={mode === 'image2image' ? handleGenerateFromImage : handleGenerate}
-                block
-              >
-                {generating ? '生成中...' : (mode === 'image2image' ? '图生图' : '生成图片')}
-              </Button>
-            </Space>
-          </Card>
-        </Col>
-
-        {/* 右侧：结果区 */}
-        <Col span={14}>
-          {images.length > 0 && (
-            <Card
-              title={`生成结果 (${selectedCount}/${images.length} 已选)`}
-              extra={
-                selectedCount > 0 && (
-                  <Button type="primary" size="small">
-                    确认选中 ({selectedCount})
-                  </Button>
-                )
-              }
-              className="result-card"
+      {/* 三栏布局 */}
+      <div className="gen-layout">
+        {/* 左栏：模板列表 */}
+        <div className="gen-left">
+          <h5>电商模板</h5>
+          {categories.map(cat => (
+            <div
+              key={cat}
+              className={`tc ${selectedCategory === cat ? 'a' : ''}`}
+              onClick={() => setSelectedCategory(selectedCategory === cat ? '' : cat)}
             >
-              <div className="image-grid">
+              <div className="ti">{TEMPLATE_ICONS[cat] || '📋'}</div>
+              <div className="tn">{cat}</div>
+            </div>
+          ))}
+          <div
+            className={`tc ${!selectedTemplate && !selectedCategory ? 'a' : ''}`}
+            onClick={() => { setSelectedCategory(''); setSelectedTemplate(null); }}
+          >
+            <div className="ti">🔧</div>
+            <div className="tn">自定义</div>
+            <div className="td">自由输入描述</div>
+          </div>
+        </div>
+
+        {/* 中间栏：编辑区 */}
+        <div className="gen-center">
+          {/* 模式切换 */}
+          <div className="gmt">
+            <div className={`gmt-t ${mode === 'text2image' ? 'a' : ''}`} onClick={() => setMode('text2image')}>
+              📝 文生图
+            </div>
+            <div className={`gmt-t ${mode === 'image2image' ? 'a' : ''}`} onClick={() => setMode('image2image')}>
+              🖼️ 图生图
+            </div>
+          </div>
+
+          {/* 图生图：上传区 */}
+          {mode === 'image2image' && (
+            <div>
+              {referenceImage ? (
+                <div style={{ position: 'relative', textAlign: 'center' }}>
+                  <img
+                    src={referenceImage.preview}
+                    alt="参考图"
+                    style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 8, border: '1px solid #e2e8f0' }}
+                  />
+                  <Button
+                    size="small" danger
+                    style={{ position: 'absolute', top: 8, right: 8 }}
+                    onClick={() => setReferenceImage(null)}
+                  >✕</Button>
+                </div>
+              ) : (
+                <Upload.Dragger
+                  accept="image/*" showUploadList={false} maxCount={1}
+                  beforeUpload={(file) => {
+                    const reader = new FileReader()
+                    reader.onload = () => setReferenceImage({ file, preview: reader.result as string })
+                    reader.readAsDataURL(file)
+                    return false
+                  }}
+                  onRemove={() => setReferenceImage(null)}
+                >
+                  <div className="uz">
+                    <div className="ui">📁</div>
+                    <p>点击或拖拽上传参考图</p>
+                    <div className="uh">支持 JPG/PNG/WebP，最大 10MB</div>
+                  </div>
+                </Upload.Dragger>
+              )}
+            </div>
+          )}
+
+          {/* 商品名称 */}
+          <div className="fg">
+            <label>商品主体</label>
+            <Input
+              placeholder="例如：白色陶瓷马克杯"
+              value={subject} onChange={e => setSubject(e.target.value)} allowClear
+              className="fi"
+            />
+          </div>
+
+          {/* AI 描述 */}
+          <div className="fg">
+            <label>AI 描述</label>
+            <TextArea
+              rows={4}
+              placeholder="描述你想要的效果..."
+              value={prompt} onChange={e => setPrompt(e.target.value)}
+              className="fi fta"
+            />
+          </div>
+
+          {/* 参数行 */}
+          <div className="fr">
+            <div className="fg" style={{ flex: 1 }}>
+              <label>生成数量</label>
+              <Select
+                className="fi" style={{ width: '100%' }}
+                value={count} onChange={setCount}
+                options={[{ label: '2 张', value: 2 }, { label: '4 张', value: 4 }, { label: '8 张', value: 8 }]}
+              />
+            </div>
+            <div className="fg" style={{ flex: 1 }}>
+              <label>尺寸</label>
+              <Select
+                className="fi" style={{ width: '100%' }}
+                value={width} onChange={(w) => { setWidth(w); setHeight(w); }}
+                options={[
+                  { label: '1024×1024', value: 1024 },
+                  { label: '720×1280', value: 720 },
+                  { label: '1280×720', value: 1280 },
+                ]}
+              />
+            </div>
+            <div className="fg" style={{ flex: 1 }}>
+              <label>提供商</label>
+              <Select
+                className="fi" style={{ width: '100%' }}
+                placeholder="选择提供商"
+                value={selectedProvider || undefined}
+                onChange={setSelectedProvider}
+                options={providers.map((p: { id: string; name: string }) => ({ label: p.name, value: p.id }))}
+              />
+            </div>
+          </div>
+
+          {/* 生成按钮 */}
+          <Button
+            type="primary" size="large" block
+            icon={<ThunderboltOutlined />}
+            loading={generating}
+            onClick={mode === 'image2image' ? handleGenerateFromImage : handleGenerate}
+            className="bg"
+          >
+            {generating ? '生成中...' : '✨ 生成图片'}
+          </Button>
+        </div>
+
+        {/* 右栏：结果预览 */}
+        <div className="gen-right">
+          <h5>✨ 生成结果 {images.length > 0 && `(${selectedCount}/${images.length} 已选)`}</h5>
+
+          {generating ? (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <Spin size="large" />
+              <p style={{ marginTop: 12, color: '#94a3b8', fontSize: 12 }}>AI 正在生成中...</p>
+            </div>
+          ) : images.length > 0 ? (
+            <>
+              <div className="rg">
                 {images.map((img, idx) => (
-                  <div
-                    key={idx}
-                    className={`image-card ${img.selected ? 'selected' : ''}`}
-                    onClick={() => toggleSelect(idx)}
-                  >
-                    <div className="image-wrapper">
-                      <Spin spinning={false}>
-                        <img src={img.url || `file://${img.localPath}`} alt={`生成结果 ${idx + 1}`} />
-                      </Spin>
-                      {img.selected && (
-                        <div className="selected-badge">
-                          <CheckCircleOutlined />
-                        </div>
-                      )}
-                    </div>
-                    <div className="image-info">
-                      <Tag color="blue">{img.width}×{img.height}</Tag>
-                      <Tag color="green">{(img.fileSize / 1024).toFixed(0)}KB</Tag>
-                      <Tag>{img.format.toUpperCase()}</Tag>
-                    </div>
-                    <div className="image-actions">
-                      <Tooltip title="合规检查">
-                        <Button
-                          size="small"
-                          icon={img.compliance
-                            ? (img.compliance.compliant ? <CheckCircleOutlined /> : <CloseCircleOutlined />)
-                            : <CheckCircleOutlined />
-                          }
-                          onClick={(e) => { e.stopPropagation(); handleCheckCompliance(img, idx) }}
-                        />
-                      </Tooltip>
-                      <Tooltip title="自动处理">
-                        <Button
-                          size="small"
-                          icon={<EditOutlined />}
-                          onClick={(e) => { e.stopPropagation(); handleAutoProcess(img, idx) }}
-                        />
-                      </Tooltip>
-                      <Tooltip title="重新生成">
-                        <Button
-                          size="small"
-                          icon={<ReloadOutlined />}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </Tooltip>
-                    </div>
-                    {img.compliance && (
-                      <div className={`compliance-result ${img.compliance.compliant ? 'pass' : 'fail'}`}>
-                        {img.compliance.compliant
-                          ? '✅ 符合平台要求'
-                          : `❌ ${img.compliance.issues.join('；')}`
-                        }
-                      </div>
-                    )}
+                  <div key={idx} className={`ri ${img.selected ? 'sel' : ''}`} onClick={() => toggleSelect(idx)}>
+                    <Image
+                      src={img.url || `file://${img.localPath}`}
+                      width="100%" height="100%"
+                      style={{ objectFit: 'cover', borderRadius: 6 }}
+                      preview={{ src: img.url || `file://${img.localPath}` }}
+                    />
+                    {img.selected && <span className="rb">✓</span>}
                   </div>
                 ))}
               </div>
-            </Card>
+
+              {/* 操作按钮 */}
+              <div className="ra">
+                <Button size="small" icon={<DownloadOutlined />}>下载</Button>
+                <Button size="small" icon={<EditOutlined />}>编辑</Button>
+                <Button size="small" type="primary">📤 发布</Button>
+              </div>
+
+              {/* 合规结果 */}
+              {images.map((img, idx) => (
+                img.compliance && (
+                  <div key={idx} style={{
+                    padding: '6px 8px', borderRadius: 6, marginBottom: 4, fontSize: 11,
+                    background: img.compliance.compliant ? '#ecfdf5' : '#fef2f2',
+                    color: img.compliance.compliant ? '#059669' : '#dc2626',
+                  }}>
+                    {img.compliance.compliant ? '✅' : '❌'} 图 {idx + 1}: {img.compliance.compliant ? '符合要求' : img.compliance.issues.join('; ')}
+                    <Button
+                      size="small" type="link" style={{ float: 'right', padding: 0, height: 'auto', fontSize: 10 }}
+                      onClick={(e) => { e.stopPropagation(); handleCheckCompliance(img, idx) }}
+                    >重查</Button>
+                  </div>
+                )
+              ))}
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#cbd5e1' }}>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>🖼️</div>
+              <p style={{ fontSize: 12 }}>生成结果将在这里显示</p>
+            </div>
           )}
 
-          {/* 历史图片 */}
-          <Card
-            title={<span><PictureOutlined /> 历史图片</span>}
-            style={{ marginTop: 16 }}
-            className="history-card"
-          >
-            {historyImages.length === 0 ? (
-              <p style={{ color: '#999', textAlign: 'center', padding: '40px 0' }}>
-                还没有历史图片
-              </p>
-            ) : (
-              <Row gutter={[8, 8]}>
-                {historyImages.map((img: any) => (
-                  <Col key={img.filename} span={4}>
-                    <div className="history-item">
-                      <Image
-                        src={`file://${img.path}`}
-                        width={80}
-                        height={80}
-                        style={{ objectFit: 'cover' }}
-                      />
-                      <div className="history-info">
-                        <span className="filename">{img.filename.slice(0, 12)}...</span>
-                        <span className="filesize">{(img.size / 1024).toFixed(0)}KB</span>
-                      </div>
-                      <Button
-                        size="small"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => handleDelete(img.filename)}
-                      />
-                    </div>
-                  </Col>
-                ))}
-              </Row>
-            )}
-          </Card>
-        </Col>
-      </Row>
+          {/* 历史记录 */}
+          <h5 style={{ marginTop: 16 }}>📜 历史记录 ({historyImages.length})</h5>
+          {historyImages.length > 0 ? (
+            <div className="hg">
+              {historyImages.slice(0, 12).map((img: any) => (
+                <div key={img.filename} className="ht" style={{ position: 'relative', overflow: 'hidden', borderRadius: 4 }}>
+                  <Image
+                    src={`file://${img.path}`}
+                    width="100%" height="100%"
+                    style={{ objectFit: 'cover' }}
+                    preview={{ src: `file://${img.path}` }}
+                  />
+                  <Button
+                    size="small" danger type="text"
+                    icon={<DeleteOutlined />}
+                    style={{ position: 'absolute', top: 2, right: 2, padding: 2, minWidth: 20, height: 20 }}
+                    onClick={() => handleDelete(img.filename)}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ fontSize: 11, color: '#94a3b8' }}>暂无历史记录</p>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
