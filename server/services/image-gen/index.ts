@@ -7,6 +7,7 @@ export type {
   IImageProvider,
   ImageGenerationResponse,
   GenerationOptions,
+  ImageToImageOptions,
   ImageResult,
   GenerationTask,
   GenerationStatus,

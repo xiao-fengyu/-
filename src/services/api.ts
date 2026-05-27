@@ -52,6 +52,38 @@ export async function generateImages(params: {
   return res.data
 }
 
+/** 图生图 — 上传参考图 + prompt 生成新图 */
+export async function generateImagesFromImage(params: {
+  referenceImage: File
+  providerConfig: Record<string, unknown>
+  prompt: string
+  count?: number
+  width?: number
+  height?: number
+  strength?: number
+  cfgScale?: number
+  seed?: number
+  productId?: string
+}) {
+  const formData = new FormData()
+  formData.append('referenceImage', params.referenceImage)
+  formData.append('params', JSON.stringify({
+    providerConfig: params.providerConfig,
+    prompt: params.prompt,
+    count: params.count,
+    width: params.width,
+    height: params.height,
+    strength: params.strength,
+    cfgScale: params.cfgScale,
+    seed: params.seed,
+    productId: params.productId,
+  }))
+  const res = await api.post('/api/images/generate-from-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data
+}
+
 /** 合规检查 */
 export async function checkCompliance(imagePath: string) {
   const res = await api.post('/api/images/compliance', { imagePath })

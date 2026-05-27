@@ -1,12 +1,12 @@
-import { Card, Input, Button, Select, Space, Tag, Row, Col, Image, Spin, message, Divider, Tooltip } from 'antd'
+import { Card, Input, Button, Select, Space, Tag, Row, Col, Image, Spin, message, Divider, Tooltip, Tabs, Upload } from 'antd'
 import { useState, useEffect } from 'react'
 import {
   PictureOutlined, ReloadOutlined, CheckCircleOutlined, CloseCircleOutlined,
   DeleteOutlined, EditOutlined, ThunderboltOutlined,
-  FileTextOutlined
+  FileTextOutlined, UploadOutlined, SwapOutlined
 } from '@ant-design/icons'
 import {
-  fetchTemplates, renderTemplate, generateImages,
+  fetchTemplates, renderTemplate, generateImages, generateImagesFromImage,
   checkCompliance, processImage, fetchImages, deleteImage,
 } from '@/services/api'
 import { useAppStore } from '@/store'
@@ -38,6 +38,7 @@ export default function ImageGeneratorPage() {
   const { providers } = useAppStore()
 
   // 状态
+  const [mode, setMode] = useState<'text2image' | 'image2image'>('text2image')
   const [templates, setTemplates] = useState<PromptTemplate[]>([])
   const [categories, setCategories] = useState<string[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('')
@@ -52,6 +53,8 @@ export default function ImageGeneratorPage() {
   const [images, setImages] = useState<GeneratedImage[]>([])
   const [historyImages, setHistoryImages] = useState<any[]>([])
   const [showTemplates, setShowTemplates] = useState(false)
+  // 图生图相关状态
+  const [referenceImage, setReferenceImage] = useState<{ file: File; preview: string } | null>(null)
 
   // 加载模板和历史图片
   useEffect(() => {
@@ -137,6 +140,55 @@ export default function ImageGeneratorPage() {
     }
   }
 
+  // 图生图
+  const handleGenerateFromImage = async () => {
+    if (!referenceImage) return message.warning('请上传参考图')
+    if (!prompt.trim()) return message.warning('请输入描述')
+    if (!selectedProvider) return message.warning('请选择 AI 提供商')
+
+    const provider = providers.find(p => p.id === selectedProvider)
+    if (!provider) return message.warning('请先在设置中添加 AI 提供商')
+
+    setGenerating(true)
+    try {
+      const res = await generateImagesFromImage({
+        referenceImage: referenceImage.file,
+        providerConfig: {
+          id: provider.id,
+          name: provider.name,
+          type: provider.type,
+          endpoint: provider.endpoint,
+          apiKey: provider.apiKey,
+          model: provider.model,
+          maxImages: provider.maxImages,
+          defaultParams: {},
+          isDefault: provider.isDefault,
+        },
+        prompt: prompt.trim(),
+        count,
+        width,
+        height,
+      })
+
+      if (res.success) {
+        setImages(res.data.images.map((img: GeneratedImage) => ({
+          ...img,
+          selected: false,
+        })))
+        message.success(`成功生成 ${res.data.count} 张图片`)
+        fetchImages().then((r: any) => {
+          if (r.success) setHistoryImages(r.data.images)
+        })
+      } else {
+        message.error(res.error || '生成失败')
+      }
+    } catch (err: any) {
+      message.error(err.message || '图生图失败')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   // 合规检查
   const handleCheckCompliance = async (img: GeneratedImage, index: number) => {
     try {
@@ -200,6 +252,23 @@ export default function ImageGeneratorPage() {
         <p className="subtitle">输入商品描述或选择模板，AI 自动生成高质量商品图</p>
       </div>
 
+      {/* 生成模式切换 */}
+      <Tabs
+        activeKey={mode}
+        onChange={(key) => setMode(key as 'text2image' | 'image2image')}
+        items={[
+          {
+            key: 'text2image',
+            label: <span><FileTextOutlined /> 文生图</span>,
+          },
+          {
+            key: 'image2image',
+            label: <span><SwapOutlined /> 图生图</span>,
+          },
+        ]}
+        style={{ marginBottom: 16 }}
+      />
+
       <Row gutter={16}>
         {/* 左侧：输入区 */}
         <Col span={10}>
@@ -207,8 +276,56 @@ export default function ImageGeneratorPage() {
             <span><FileTextOutlined /> Prompt 设置</span>
           } className="input-card">
             <Space direction="vertical" style={{ width: '100%' }} size="middle">
-              {/* 模板选择 */}
-              <div>
+              {/* 图生图：参考图上传 */}
+              {mode === 'image2image' && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
+                    参考图 <span style={{ color: '#999', fontWeight: 400 }}>（上传模板/示例图）</span>
+                  </label>
+                  <Upload.Dragger
+                    name="referenceImage"
+                    accept="image/*"
+                    showUploadList={false}
+                    maxCount={1}
+                    beforeUpload={(file) => {
+                      const reader = new FileReader()
+                      reader.onload = () => {
+                        setReferenceImage({ file, preview: reader.result as string })
+                      }
+                      reader.readAsDataURL(file)
+                      return false // 阻止自动上传
+                    }}
+                    onRemove={() => setReferenceImage(null)}
+                  >
+                    <p className="ant-upload-drag-icon">
+                      <UploadOutlined />
+                    </p>
+                    <p className="ant-upload-text">点击或拖拽上传参考图</p>
+                    <p className="ant-upload-hint">支持 JPG/PNG/WebP，最大 10MB</p>
+                  </Upload.Dragger>
+                  {referenceImage && (
+                    <div style={{ marginTop: 8, textAlign: 'center' }}>
+                      <img
+                        src={referenceImage.preview}
+                        alt="参考图预览"
+                        style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 8, border: '1px solid #eee' }}
+                      />
+                      <Button
+                        size="small"
+                        danger
+                        style={{ marginTop: 8 }}
+                        onClick={() => setReferenceImage(null)}
+                      >
+                        移除参考图
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 模板选择（仅文生图模式） */}
+              {mode === 'text2image' && (
+                <>
                 <Button
                   icon={<FileTextOutlined />}
                   onClick={() => setShowTemplates(!showTemplates)}
@@ -251,7 +368,8 @@ export default function ImageGeneratorPage() {
                     </Space>
                   </Card>
                 )}
-              </div>
+                </>
+              )}
 
               {/* 商品主体 */}
               <div>
@@ -342,10 +460,10 @@ export default function ImageGeneratorPage() {
                 size="large"
                 icon={<ThunderboltOutlined />}
                 loading={generating}
-                onClick={handleGenerate}
+                onClick={mode === 'image2image' ? handleGenerateFromImage : handleGenerate}
                 block
               >
-                {generating ? '生成中...' : '生成图片'}
+                {generating ? '生成中...' : (mode === 'image2image' ? '图生图' : '生成图片')}
               </Button>
             </Space>
           </Card>
