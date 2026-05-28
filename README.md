@@ -146,6 +146,7 @@ Electron 打包后，数据目录位于 `%APPDATA%/e-platform/data/`。
 | 阶段八：Windows 安装包白屏修复 | ✅ 已完成 | Electron fork 子进程路径修正 + NODE_PATH 原生模块定位 + preload API 注入 + **file:// 协议替换为 HTTP** |
 | 阶段九：图生图功能 | ✅ 已完成 | IImageProvider 扩展 generateFromImage + Wanx/CustomProvider 图生图实现 + 前端参考图上传 + Tab 切换 |
 | 阶段十：UI 全面重设计 | ✅ 已完成 | 工作站式布局 + 紫蓝渐变主题 + 三栏 AI 生成 + 分步发布表单 + 卡片仪表盘 |
+| 阶段十一：模型管理 + Prompt 优化 | ✅ 已完成 | 统一文本 LLM 管理入口 + 模型切换 + 大白话 → 专业 prompt 自动转换 |
 
 ### 已完成详情
 - [x] 项目骨架搭建（Electron + React + TypeScript + Vite）
@@ -342,6 +343,37 @@ getApiBaseUrl: () => {
 - [x] 原有文生图功能完全不受影响
 - [x] TypeScript 编译零错误
 - [x] 所有改动已 git push，CI 构建通过
+
+### 阶段十一：模型管理 + Prompt 优化 ✅
+
+**设计理念**：一处配置文本 LLM，处处可选模型切换，大白话也能生成专业 prompt。
+
+**核心改动**：
+
+| 改动 | 说明 |
+|------|------|
+| Store 扩展 | 新增 `TextModelConfig` 类型 + textModels CRUD 状态管理 |
+| 后端优化接口 | `POST /api/images/optimize-prompt`，调用 OpenAI 兼容 chat completions API |
+| 后端模型接口 | `POST /api/images/providers/models` 完善，支持动态获取提供商模型列表 |
+| Settings 文本 LLM | 新增「文本 LLM」Tab，内置千问/DeepSeek/OpenAI 模板 + 自定义添加 |
+| AI 描述区优化 | prompt textarea 旁加文本 LLM 选择 + 「AI 优化」按钮，点击后 loading → 填回结果 |
+| 模型切换 | 提供商 Select 旁加模型 Select，选中后覆盖 providerConfig.model 传给后端 |
+| 前端 API | 新增 `fetchProviderModels()` + `optimizePrompt()` 函数 |
+
+#### 内置文本 LLM 模板
+| 名称 | 端点 | 默认模型 |
+|------|------|--------|
+| 通义千问 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | qwen-plus |
+| DeepSeek | `https://api.deepseek.com/v1` | deepseek-chat |
+| OpenAI GPT | `https://api.openai.com/v1` | gpt-4o-mini |
+
+#### 验收标准
+- [x] Settings 页能添加/删除文本 LLM
+- [x] ImageGenerator 页 prompt 区旁能选择文本 LLM 并点击优化
+- [x] 大白话描述 → 点击 → 得到电商场景专业 prompt
+- [x] 文生图/图生图都能切换模型
+- [x] TypeScript 编译零错误
+- [x] 所有改动已 git push
 
 ## 配置说明
 

@@ -501,4 +501,95 @@ router.post('/providers/models', async (req, res) => {
   }
 })
 
+// ============================================================
+// Prompt 优化
+// ============================================================
+
+/** 自然语言 → 专业电商 Prompt */
+router.post('/optimize-prompt', async (req, res) => {
+  try {
+    const { textModelConfig, description } = req.body
+    if (!textModelConfig || !textModelConfig.endpoint || !textModelConfig.apiKey) {
+      return res.status(400).json({
+        success: false,
+        error: '缺少文本 LLM 配置或 API Key',
+      })
+    }
+    if (!description || !description.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: '描述不能为空',
+      })
+    }
+
+    const systemPrompt = `你是一位专业的电商商品摄影提示词专家。
+
+用户会用大白话描述他们想要的商品图片效果。你的任务是将用户的描述转换为一段专业的英文图片生成 prompt，适用于 AI 图片生成模型（如 DALL-E、通义万相等）。
+
+要求：
+1. 输出必须是英文
+2. 包含：商品主体、背景场景、光线、构图、风格、画质等要素
+3. 简洁但专业，100-200 词以内
+4. 直接输出 prompt，不要加引号、解释或前后缀
+5. 如果用户只说了很少的信息，自动补充合理的电商摄影常用元素`
+
+    const userPrompt = `请将以下描述转为专业电商商品摄影 prompt：\n\n${description.trim()}`
+
+    const response = await axios.post(
+      `${textModelConfig.endpoint}/chat/completions`,
+      {
+        model: textModelConfig.model || 'qwen-plus',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${textModelConfig.apiKey}`,
+        },
+        timeout: 30000,
+      }
+    )
+
+    const optimizedPrompt =
+      response.data.choices?.[0]?.message?.content?.trim() ||
+      response.data.choices?.[0]?.text?.trim()
+
+    if (!optimizedPrompt) {
+      return res.status(500).json({
+        success: false,
+        error: 'LLM 返回为空，无法优化 prompt',
+      })
+    }
+
+    res.json({
+      success: true,
+      data: {
+        originalDescription: description.trim(),
+        optimizedPrompt,
+        model: textModelConfig.model || 'unknown',
+      },
+    })
+  } catch (err: any) {
+    console.error('[Prompt 优化失败]', err.message)
+    if (err.response) {
+      const status = err.response.status
+      const detail = err.response.data?.error?.message || err.response.data?.message || ''
+      res.status(500).json({
+        success: false,
+        error: `LLM 请求失败 (${status})${detail ? ': ' + detail : ''}`,
+      })
+    } else {
+      res.status(500).json({
+        success: false,
+        error: err.message || 'Prompt 优化失败',
+      })
+    }
+  }
+})
+
 export default router

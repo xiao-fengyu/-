@@ -1,13 +1,19 @@
 import { Card, Tabs, Form, Input, Button, Select, Space, message, Table, Modal } from 'antd'
 import { useState } from 'react'
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
-import { useAppStore, type ProviderConfig, type PlatformCredential } from '../../store'
+import { useAppStore, type ProviderConfig, type PlatformCredential, type TextModelConfig } from '../../store'
 import './Settings.css'
 
 const builtinProviders = [
   { name: 'DALL-E 3', endpoint: 'https://api.openai.com/v1/images/generations', model: 'dall-e-3' },
   { name: '通义万相', endpoint: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis', model: 'wanx-v1' },
   { name: '文心一格', endpoint: 'https://aip.baidubce.com/rpc/2.0/ernievilg/v1/txt2img', model: 'ernie-vilg-v2' },
+]
+
+const builtinTextModels = [
+  { name: '通义千问', endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-plus' },
+  { name: 'DeepSeek', endpoint: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
+  { name: 'OpenAI GPT', endpoint: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
 ]
 
 const platformOptions = [
@@ -21,11 +27,14 @@ export default function SettingsPage() {
   const {
     providers, addProvider, deleteProvider,
     platformCredentials, addPlatformCredential, deletePlatformCredential,
+    textModels, addTextModel, deleteTextModel,
   } = useAppStore()
 
   const [providerModalOpen, setProviderModalOpen] = useState(false)
+  const [textModelModalOpen, setTextModelModalOpen] = useState(false)
   const [providerForm] = Form.useForm()
   const [platformForm] = Form.useForm()
+  const [textModelForm] = Form.useForm()
 
   // AI 提供商
   const handleAddProvider = async (values: any) => {
@@ -79,6 +88,34 @@ export default function SettingsPage() {
     message.success('已删除')
   }
 
+  // 文本 LLM
+  const handleAddTextModel = async (values: any) => {
+    addTextModel({
+      name: values.name,
+      endpoint: values.endpoint,
+      apiKey: values.apiKey,
+      model: values.model,
+    })
+    message.success('文本 LLM 已添加')
+    setTextModelModalOpen(false)
+    textModelForm.resetFields()
+  }
+
+  const handleDeleteTextModel = (id: string) => {
+    deleteTextModel(id)
+    message.success('已删除')
+  }
+
+  const handleQuickAddTextModel = (preset: typeof builtinTextModels[0]) => {
+    addTextModel({
+      name: preset.name,
+      endpoint: preset.endpoint,
+      apiKey: '',
+      model: preset.model,
+    })
+    message.success(`${preset.name} 已添加，请填写 API Key`)
+  }
+
   const providerColumns = [
     { title: '名称', dataIndex: 'name', key: 'name' },
     { title: '端点', dataIndex: 'endpoint', key: 'endpoint', ellipsis: true },
@@ -102,6 +139,19 @@ export default function SettingsPage() {
       key: 'action',
       render: (_: any, record: PlatformCredential) => (
         <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeletePlatform(record.id)} />
+      ),
+    },
+  ]
+
+  const textModelColumns = [
+    { title: '名称', dataIndex: 'name', key: 'name' },
+    { title: '端点', dataIndex: 'endpoint', key: 'endpoint', ellipsis: true },
+    { title: '模型', dataIndex: 'model', key: 'model' },
+    {
+      title: '操作',
+      key: 'action',
+      render: (_: any, record: TextModelConfig) => (
+        <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeleteTextModel(record.id)} />
       ),
     },
   ]
@@ -180,8 +230,72 @@ export default function SettingsPage() {
               </Card>
             ),
           },
+          {
+            key: 'text-models',
+            label: '文本 LLM',
+            children: (
+              <>
+                <Card
+                  title="快速添加内置模板"
+                  style={{ marginBottom: 16 }}
+                >
+                  <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 12 }}>
+                    用于 Prompt 优化等文本任务。兼容 OpenAI Chat Completions API 的端点均可。
+                  </p>
+                  <Space wrap>
+                    {builtinTextModels.map((p) => (
+                      <Button key={p.name} onClick={() => handleQuickAddTextModel(p)}>
+                        + {p.name}
+                      </Button>
+                    ))}
+                  </Space>
+                </Card>
+                <Card
+                  title="已添加的文本 LLM"
+                  extra={
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setTextModelModalOpen(true)}>
+                      自定义添加
+                    </Button>
+                  }
+                >
+                  <Table
+                    columns={textModelColumns}
+                    dataSource={textModels.map(m => ({ ...m, key: m.id }))}
+                    pagination={false}
+                    locale={{ emptyText: '暂无文本 LLM，Prompt 优化功能将无法使用' }}
+                  />
+                </Card>
+              </>
+            ),
+          },
         ]}
       />
+
+      {/* 文本 LLM 自定义添加 Modal */}
+      <Modal
+        title="添加自定义文本 LLM"
+        open={textModelModalOpen}
+        onCancel={() => setTextModelModalOpen(false)}
+        footer={null}
+      >
+        <Form form={textModelForm} onFinish={handleAddTextModel} layout="vertical">
+          <Form.Item name="name" label="名称" rules={[{ required: true }]}>
+            <Input placeholder="例如：通义千问 / DeepSeek" />
+          </Form.Item>
+          <Form.Item name="endpoint" label="API 端点" rules={[{ required: true }]}>
+            <Input placeholder="https://.../v1" />
+          </Form.Item>
+          <Form.Item name="apiKey" label="API Key" rules={[{ required: true }]}>
+            <Input.Password placeholder="sk-..." />
+          </Form.Item>
+          <Form.Item name="model" label="模型名" rules={[{ required: true }]}>
+            <Input placeholder="qwen-plus / deepseek-chat" />
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" htmlType="submit" block>添加</Button>
+          </Form.Item>
+        </Form>
+      </Modal>
 
       <Modal
         title="添加自定义 AI 提供商"

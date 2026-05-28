@@ -2,11 +2,12 @@ import { Input, Button, Select, Image, Spin, message, Upload } from 'antd'
 import { useState, useEffect } from 'react'
 import {
   DeleteOutlined, ThunderboltOutlined,
-  EditOutlined, DownloadOutlined
+  EditOutlined, DownloadOutlined, RobotOutlined
 } from '@ant-design/icons'
 import {
   fetchTemplates, renderTemplate, generateImages, generateImagesFromImage,
   checkCompliance, fetchImages, deleteImage,
+  fetchProviderModels, optimizePrompt,
 } from '@/services/api'
 import { useAppStore } from '@/store'
 import './ImageGenerator.css'
@@ -40,7 +41,7 @@ const TEMPLATE_ICONS: Record<string, string> = {
 }
 
 export default function ImageGeneratorPage() {
-  const { providers } = useAppStore()
+  const { providers, textModels } = useAppStore()
 
   // 状态
   const [mode, setMode] = useState<'text2image' | 'image2image'>('text2image')
@@ -50,6 +51,10 @@ export default function ImageGeneratorPage() {
   const [subject, setSubject] = useState('')
   const [prompt, setPrompt] = useState('')
   const [selectedProvider, setSelectedProvider] = useState('')
+  const [selectedModel, setSelectedModel] = useState('')
+  const [availableModels, setAvailableModels] = useState<string[]>([])
+  const [selectedTextModel, setSelectedTextModel] = useState('')
+  const [optimizing, setOptimizing] = useState(false)
   const [count, setCount] = useState(4)
   const [width, setWidth] = useState(1024)
   const [height, setHeight] = useState(1024)
@@ -80,6 +85,39 @@ export default function ImageGeneratorPage() {
     }
   }, [subject])
 
+  // 选提供商后拉取可用模型列表
+  useEffect(() => {
+    if (!selectedProvider) {
+      setAvailableModels([])
+      setSelectedModel('')
+      return
+    }
+    const provider = providers.find(p => p.id === selectedProvider)
+    if (!provider) return
+    fetchProviderModels({
+      id: provider.id, name: provider.name, type: provider.type,
+      endpoint: provider.endpoint, apiKey: provider.apiKey,
+      model: provider.model, maxImages: provider.maxImages,
+      isDefault: provider.isDefault,
+    }).then((res: any) => {
+      if (res.success && res.data.models?.length) {
+        setAvailableModels(res.data.models)
+        const defaultModel = provider.model
+        if (res.data.models.includes(defaultModel)) {
+          setSelectedModel(defaultModel)
+        } else {
+          setSelectedModel(res.data.models[0])
+        }
+      } else {
+        setAvailableModels([provider.model])
+        setSelectedModel(provider.model)
+      }
+    }).catch(() => {
+      setAvailableModels([provider.model])
+      setSelectedModel(provider.model)
+    })
+  }, [selectedProvider])
+
   // 生成图片
   const handleGenerate = async () => {
     if (!prompt.trim()) return message.warning('请输入商品描述或选择模板')
@@ -88,13 +126,16 @@ export default function ImageGeneratorPage() {
     const provider = providers.find(p => p.id === selectedProvider)
     if (!provider) return message.warning('请先在设置中添加 AI 提供商')
 
+    // 用选中的 model 覆盖 provider 的默认 model
+    const effectiveModel = selectedModel || provider.model
+
     setGenerating(true)
     try {
       const res = await generateImages({
         providerConfig: {
           id: provider.id, name: provider.name, type: provider.type,
           endpoint: provider.endpoint, apiKey: provider.apiKey,
-          model: provider.model, maxImages: provider.maxImages,
+          model: effectiveModel, maxImages: provider.maxImages,
           defaultParams: {}, isDefault: provider.isDefault,
         },
         prompt: prompt.trim(), count, width, height,
@@ -123,6 +164,9 @@ export default function ImageGeneratorPage() {
     const provider = providers.find(p => p.id === selectedProvider)
     if (!provider) return message.warning('请先在设置中添加 AI 提供商')
 
+    // 用选中的 model 覆盖 provider 的默认 model
+    const effectiveModel = selectedModel || provider.model
+
     setGenerating(true)
     try {
       const res = await generateImagesFromImage({
@@ -130,7 +174,7 @@ export default function ImageGeneratorPage() {
         providerConfig: {
           id: provider.id, name: provider.name, type: provider.type,
           endpoint: provider.endpoint, apiKey: provider.apiKey,
-          model: provider.model, maxImages: provider.maxImages,
+          model: effectiveModel, maxImages: provider.maxImages,
           defaultParams: {}, isDefault: provider.isDefault,
         },
         prompt: prompt.trim(), count, width, height,
@@ -183,6 +227,33 @@ export default function ImageGeneratorPage() {
   }
 
   const selectedCount = images.filter(i => i.selected).length
+
+  // Prompt 优化
+  const handleOptimizePrompt = async () => {
+    if (!prompt.trim()) return message.warning('请先输入描述')
+    const textModel = textModels.find(m => m.id === selectedTextModel)
+    if (!textModel) return message.warning('请先选择文本 LLM（或到设置中添加）')
+
+    setOptimizing(true)
+    try {
+      const res = await optimizePrompt({
+        endpoint: textModel.endpoint,
+        apiKey: textModel.apiKey,
+        model: textModel.model,
+      }, prompt.trim())
+
+      if (res.success) {
+        setPrompt(res.data.optimizedPrompt)
+        message.success('Prompt 已优化')
+      } else {
+        message.error(res.error || '优化失败')
+      }
+    } catch (err: any) {
+      message.error(err.message || '优化失败')
+    } finally {
+      setOptimizing(false)
+    }
+  }
 
   return (
     <div className="image-generator">
@@ -273,12 +344,33 @@ export default function ImageGeneratorPage() {
           {/* AI 描述 */}
           <div className="fg">
             <label>AI 描述</label>
-            <TextArea
-              rows={4}
-              placeholder="描述你想要的效果..."
-              value={prompt} onChange={e => setPrompt(e.target.value)}
-              className="fi fta"
-            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <TextArea
+                rows={4}
+                placeholder="描述你想要的效果..."
+                value={prompt} onChange={e => setPrompt(e.target.value)}
+                className="fi fta"
+                style={{ flex: 1 }}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <Select
+                  style={{ width: 120 }}
+                  placeholder="选文本LLM"
+                  value={selectedTextModel || undefined}
+                  onChange={setSelectedTextModel}
+                  size="small"
+                  options={textModels.map(m => ({ label: m.name, value: m.id }))}
+                />
+                <Button
+                  icon={<RobotOutlined />}
+                  loading={optimizing}
+                  disabled={!selectedTextModel}
+                  onClick={handleOptimizePrompt}
+                  size="small"
+                  style={{ width: 120 }}
+                >AI 优化</Button>
+              </div>
+            </div>
           </div>
 
           {/* 参数行 */}
@@ -301,6 +393,17 @@ export default function ImageGeneratorPage() {
                   { label: '720×1280', value: 720 },
                   { label: '1280×720', value: 1280 },
                 ]}
+              />
+            </div>
+            <div className="fg" style={{ flex: 1 }}>
+              <label>模型</label>
+              <Select
+                className="fi" style={{ width: '100%' }}
+                placeholder="选模型"
+                value={selectedModel || undefined}
+                onChange={setSelectedModel}
+                options={availableModels.map(m => ({ label: m, value: m }))}
+                disabled={!selectedProvider}
               />
             </div>
             <div className="fg" style={{ flex: 1 }}>

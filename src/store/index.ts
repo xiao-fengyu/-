@@ -72,6 +72,18 @@ export interface ParsedItem {
 }
 
 // ============================================================
+// 文本 LLM 模型配置（用于 Prompt 优化等文本任务）
+// ============================================================
+
+export interface TextModelConfig {
+  id: string
+  name: string          // 显示名，如 "通义千问" / "DeepSeek-V3"
+  endpoint: string      // OpenAI 兼容端点
+  apiKey: string
+  model: string         // 模型名，如 qwen-plus / deepseek-chat
+}
+
+// ============================================================
 // Store 接口
 // ============================================================
 
@@ -104,6 +116,13 @@ interface AppState {
   setCurrentTaskItems: (items: BatchItem[]) => void
   setImportPreview: (preview: ParsedItem[] | null) => void
   clearBatchState: () => void
+
+  // 文本 LLM 模型
+  textModels: TextModelConfig[]
+  setTextModels: (models: TextModelConfig[]) => void
+  addTextModel: (model: Omit<TextModelConfig, 'id'>) => void
+  updateTextModel: (id: string, updates: Partial<TextModelConfig>) => void
+  deleteTextModel: (id: string) => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -155,4 +174,20 @@ export const useAppStore = create<AppState>((set) => ({
   setCurrentTaskItems: (items) => set({ currentTaskItems: items }),
   setImportPreview: (preview) => set({ importPreview: preview }),
   clearBatchState: () => set({ currentTask: null, currentTaskItems: [], importPreview: null }),
+
+  // ===== 文本 LLM 模型 =====
+  textModels: [],
+  setTextModels: (models) => set({ textModels: models }),
+  addTextModel: (model) =>
+    set((state) => ({
+      textModels: [...state.textModels, { ...model, id: Date.now().toString() }],
+    })),
+  updateTextModel: (id, updates) =>
+    set((state) => ({
+      textModels: state.textModels.map((m) => (m.id === id ? { ...m, ...updates } : m)),
+    })),
+  deleteTextModel: (id) =>
+    set((state) => ({
+      textModels: state.textModels.filter((m) => m.id !== id),
+    })),
 }))

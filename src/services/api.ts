@@ -84,6 +84,25 @@ export async function generateImagesFromImage(params: {
   return res.data
 }
 
+/** 获取提供商支持的模型列表 */
+export async function fetchProviderModels(providerConfig: Record<string, unknown>) {
+  const res = await api.post('/api/images/providers/models', { providerConfig })
+  return res.data
+}
+
+/** Prompt 优化 — 自然语言 → 专业电商 prompt */
+export async function optimizePrompt(textModelConfig: {
+  endpoint: string
+  apiKey: string
+  model: string
+}, description: string) {
+  const res = await api.post('/api/images/optimize-prompt', {
+    textModelConfig,
+    description,
+  })
+  return res.data
+}
+
 /** 合规检查 */
 export async function checkCompliance(imagePath: string) {
   const res = await api.post('/api/images/compliance', { imagePath })
