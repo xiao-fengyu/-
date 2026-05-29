@@ -1,0 +1,134 @@
+/* Publish 分步表单样式 */
+
+.publish-page {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Stepper */
+.pub-stepper {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px 32px;
+  margin-bottom: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+/* 分步卡片 */
+.pub-step-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 16px;
+}
+
+.pub-step-card h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 2px;
+}
+
+.pub-step-hint {
+  color: #64748b;
+  font-size: 12px;
+  margin: 0 0 16px;
+}
+
+.pub-form-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 确认发布摘要 */
+.pub-summary {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.pub-summary-row {
+  padding: 8px 0;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 13px;
+}
+
+.pub-summary-row:last-child {
+  border-bottom: none;
+}
+
+.pub-summary-row .label {
+  color: #64748b;
+  font-weight: 500;
+  margin-right: 8px;
+}
+
+/* 已选图片 */
+.selected-images-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* 操作按钮 */
+.pub-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  margin-bottom: 24px;
+}
+
+.pub-btn-right {
+  display: flex;
+  gap: 8px;
+}
+
+.pub-btn-next {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: none;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.pub-btn-next:hover {
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+}
+
+/* 图片选择 Modal */
+.pub-image-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.pub-image-card {
+  width: 100px;
+  height: 100px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+  transition: all 0.15s;
+}
+
+.pub-image-card:hover {
+  border-color: #6366f1;
+}
+
+.pub-image-card.selected {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+/* 发布历史 */
+.pub-history {
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}

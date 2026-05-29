@@ -1,0 +1,50 @@
+appId: com.eplatform.app
+productName: e-platform
+directories:
+  output: release
+  buildResources: resources
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - dist-server/**/*
+  - '!node_modules/**/{.cache,*.d.ts,test,tests,__tests__}'
+  - '!**/{.DS_Store,*.log,.env}'
+asar: true
+asarUnpack:
+  - 'node_modules/better-sqlite3/**'
+  - 'node_modules/sharp/**'
+  - 'node_modules/sharp/node_modules/@img/**'
+  - 'node_modules/@img/sharp-linux-x64/**'
+  - 'node_modules/@img/sharp-libvips-linux-x64/**'
+  - 'node_modules/@img/sharp-win32-x64/**'
+  - 'node_modules/@img/sharp-libvips-win32-x64/**'
+  - 'node_modules/sqlite3/**'
+  - 'node_modules/detect-libc/**'
+npmRebuild: false
+extraResources:
+  - from: 'dist-server'
+    to: 'dist-server'
+    filter: ['**/*']
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: resources/icon.ico
+  requestedExecutionLevel: asInvoker
+nsis:
+  oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: e-platform
+  installerIcon: resources/icon.ico
+  uninstallerIcon: resources/icon.ico
+mac:
+  target: dmg
+  icon: resources/icon.png
+linux:
+  target: AppImage
+  icon: resources/icon.png

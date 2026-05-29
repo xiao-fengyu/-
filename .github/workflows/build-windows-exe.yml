@@ -1,0 +1,119 @@
+name: build-windows-exe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-windows-exe.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'electron-builder.yml'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'tsconfig.node.json'
+      - 'index.html'
+      - 'electron/**'
+      - 'src/**'
+      - 'server/**'
+      - 'resources/**'
+
+jobs:
+  build-windows-installer:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Build
+        run: npm run build
+
+      - name: Rebuild native modules
+        run: npx electron-rebuild
+
+      - name: Compile backend server
+        run: npx esbuild server/index.ts --bundle --platform=node --outfile=dist-server/index.js --external:electron --external:better-sqlite3 --external:sharp --format=cjs
+
+      - name: Package Windows installer
+        env:
+          CI: true
+          DEBUG: electron-builder
+        shell: bash
+        run: |
+          # 先打包 unpacked 版本（用于直接复制测试）
+          npx electron-builder --win --x64 --dir --publish never
+          mv "release/win-unpacked" "release/e-platform-unpacked" || true
+
+          # 再打包 NSIS 安装器
+          npx electron-builder --win --x64 --publish never > build-output.log 2>&1 || {
+            echo "electron-builder failed with exit code $?"
+            cat build-output.log
+            exit 1
+          }
+
+      - name: Upload build log (always)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-log
+          path: build-output.log
+          if-no-files-found: warn
+
+      - name: Commit build log to repo on failure
+        if: failure()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          $logBytes = [System.IO.File]::ReadAllBytes("build-output.log")
+          $logBase64 = [System.Convert]::ToBase64String($logBytes)
+          $body = @{
+            message = "ci: build log from run #${env:RUN_NUMBER}"
+            content = $logBase64
+            branch = "main"
+          } | ConvertTo-Json
+          $headers = @{
+            "Authorization" = "Bearer ${{ github.token }}"
+            "Accept" = "application/vnd.github+json"
+          }
+          $response = Invoke-RestMethod -Uri "https://api.github.com/repos/xiao-fengyu/-/contents/.github/logs/last-build.log" -Method PUT -Headers $headers -Body $body
+          Write-Host "Log committed successfully"
+
+      - name: List release artifacts
+        shell: pwsh
+        run: |
+          if (Test-Path release) {
+            Get-ChildItem -Path release -Recurse | Select-Object FullName, Length
+          } else {
+            Write-Error 'release directory not found'
+          }
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: e-platform-windows-x64
+          path: |
+            release/*.exe
+            release/latest*.yml
+            release/*.blockmap
+          if-no-files-found: error
+
+      - name: Upload unpacked build (for direct deployment)
+        uses: actions/upload-artifact@v4
+        with:
+          name: e-platform-windows-unpacked
+          path: release/e-platform-unpacked/
+          if-no-files-found: warn
