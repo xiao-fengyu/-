@@ -382,3 +382,58 @@ getApiBaseUrl: () => {
 ## 许可证
 
 MIT
+
+---
+
+## Windows Server 测试报告（2026-05-30）
+
+### 环境
+- **系统**: Windows Server
+- **Node.js**: v24.16.0
+- **npm**: 11.13.0
+- **开发路径**: D:\e-platform
+- **已安装路径**: C:\Program Files\e-platform（后端端口 3001）
+- **数据目录**: %APPDATA%\e-platform\data\（SQLite 数据库 + 图片）
+
+### 测试总览
+
+| 阶段 | 测试项 | 结果 | 备注 |
+|------|--------|------|------|
+| A | 7 阶段测试计划制定 | ✅ | 40 个未测试功能，10 个高优先级项 |
+| B | 原生模块 better-sqlite3 | ✅ | VS Build Tools 安装后编译成功（ABI 137） |
+| B | 原生模块 sharp | ✅ | JPEG/PNG 生成正常，magic bytes 验证通过 |
+| C | API 冒烟测试（已安装版本） | ⚠️ | 20 端点，16 通过，4 问题 |
+| C | Electron 安装+启动 | ✅ | Electron 窗口正常渲染 |
+| D | 前端页面路由（dev 模式） | ✅ | 所有主要路由 HTTP 200，SPA shell 555B |
+| D | 前端页面路由（已安装） | ✅ | 所有主要路由 HTTP 200 |
+| E | sharp 完整链路（dev） | ✅ | JPEG 生成/缩放/PNG 转换全部通过 |
+| F | Windows 路径兼容性 | ✅ | 数据目录/备份/路径格式均正常 |
+| F | 中文编码（dev 模式） | ✅ | 中文存入 SQLite 正常 |
+| F | 中文编码（已安装版） | ❌ | 中文变成 `????`（SQLite 编码问题） |
+| G | Electron dev 模式 | ✅ | `npm run electron:dev` 三者并行正常 |
+
+### 已知问题
+
+| # | 严重度 | 问题 | 范围 | 状态 |
+|---|--------|------|------|------|
+| 1 | 🔴 高 | 中文 POST body 存入 SQLite 后变成 `????` | 仅已安装版本 | dev 模式正常 |
+| 2 | 🟡 中 | Template render 端点参数名混淆（`templateId` vs `template`） | 两端 | render 功能可用但中文变量也变 `????` |
+| 3 | 🟡 中 | Provider validate/models 路由在 dev 模式下不存在（仅 production build 有） | dev 模式 | 设计差异 |
+| 4 | 🟢 低 | 无独立 PUT /api/providers/:id 路由（用 POST upsert 替代） | 两端 | 已知设计，非 bug |
+
+### 已修复/已解决
+- ✅ Electron 白屏（阶段八已修复）
+- ✅ better-sqlite3 编译（VS Build Tools + Node v24 ABI 137）
+- ✅ sharp Windows x64 预编译验证通过
+- ✅ 中文编码在 dev 模式下正常
+
+### 跳过测试（缺少凭据）
+- 拼多多 OAuth/类目/图片空间/商品发布（无开发者账号）
+- AI 图片生成（无有效 API Key）
+- AI 文本 LLM（无有效 API Key）
+
+### 下一步
+1. **修复已安装版本中文编码问题** — 对比 dev 和 production 的 SQLite 连接配置（`PRAGMA encoding`、better-sqlite3 版本差异）
+2. **补充拼多多真实 API 测试** — 需申请开发者账号
+3. **端到端工作流测试** — 完整「生成 → 编辑 → 发布」流程
+4. **安装包构建验证** — `npm run electron:package:win` 生成 NSIS .exe
