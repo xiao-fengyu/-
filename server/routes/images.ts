@@ -551,7 +551,7 @@ router.post('/optimize-prompt', async (req, res) => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${textModelConfig.apiKey}`,
         },
-        timeout: 30000,
+        timeout: 60000,
       }
     )
 
