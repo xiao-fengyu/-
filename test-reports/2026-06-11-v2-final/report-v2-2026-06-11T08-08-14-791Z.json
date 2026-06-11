@@ -1,0 +1,426 @@
+{
+  "startedAt": "2026-06-11T08:08:14.792Z",
+  "exePath": "C:\\Program Files\\e-platform\\e-platform.exe",
+  "apiBase": "http://127.0.0.1:3001",
+  "steps": [
+    {
+      "name": "electron.launch",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:15.698Z"
+    },
+    {
+      "name": "firstWindow visible",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:16.998Z"
+    },
+    {
+      "name": "backend health ready",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:17.024Z"
+    },
+    {
+      "name": "GET /api/health",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.030Z"
+    },
+    {
+      "name": "GET /api/images/templates",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.036Z"
+    },
+    {
+      "name": "GET /api/images/templates/category/服装鞋包",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.042Z"
+    },
+    {
+      "name": "GET /api/products",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.048Z"
+    },
+    {
+      "name": "GET /api/drafts",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.054Z"
+    },
+    {
+      "name": "GET /api/logs",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.061Z"
+    },
+    {
+      "name": "GET /api/logs?action=publish",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.069Z"
+    },
+    {
+      "name": "GET /api/logs/publish-history?limit=10",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.075Z"
+    },
+    {
+      "name": "GET /api/backup/list",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.082Z"
+    },
+    {
+      "name": "GET /api/providers/",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.087Z"
+    },
+    {
+      "name": "GET /api/providers/default",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.092Z"
+    },
+    {
+      "name": "GET /api/llm/",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.097Z"
+    },
+    {
+      "name": "GET /api/llm/default",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.101Z"
+    },
+    {
+      "name": "GET /api/images/images",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.106Z"
+    },
+    {
+      "name": "GET /api/batch/tasks",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.112Z"
+    },
+    {
+      "name": "GET /api/pdd/credentials",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.117Z"
+    },
+    {
+      "name": "POST /api/llm/ create",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.130Z"
+    },
+    {
+      "name": "GET /api/llm/ contains created",
+      "ok": true,
+      "extra": {
+        "id": "llm_test_1781165297117"
+      },
+      "at": "2026-06-11T08:08:17.136Z"
+    },
+    {
+      "name": "PATCH /api/llm/:id/default",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.142Z"
+    },
+    {
+      "name": "GET /api/llm/default matches",
+      "ok": true,
+      "extra": {
+        "got": "llm_test_1781165297117"
+      },
+      "at": "2026-06-11T08:08:17.147Z"
+    },
+    {
+      "name": "DELETE /api/llm/:id",
+      "ok": true,
+      "extra": {
+        "status": 200
+      },
+      "at": "2026-06-11T08:08:17.151Z"
+    },
+    {
+      "name": "GET /api/llm/ no longer contains",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:17.156Z"
+    },
+    {
+      "name": "POST natural-language validates empty body",
+      "ok": true,
+      "extra": {
+        "status": 400,
+        "error": "description 不能为空"
+      },
+      "at": "2026-06-11T08:08:17.163Z"
+    },
+    {
+      "name": "screenshot dashboard",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:19.576Z"
+    },
+    {
+      "name": "UI nav: AI 生成",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:21.162Z"
+    },
+    {
+      "name": "UI: 💬 自然语言 tab exists",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:21.297Z"
+    },
+    {
+      "name": "UI: 📝 文生图 tab exists",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:21.302Z"
+    },
+    {
+      "name": "UI: 🖼️ 图生图 tab exists",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:21.306Z"
+    },
+    {
+      "name": "UI: 自然语言描述输入框出现",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:22.250Z"
+    },
+    {
+      "name": "UI: 描述输入可写",
+      "ok": true,
+      "extra": {
+        "length": 23
+      },
+      "at": "2026-06-11T08:08:22.790Z"
+    },
+    {
+      "name": "UI nav: 设置",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:24.476Z"
+    },
+    {
+      "name": "UI: 文本 LLM Tab 存在",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:24.602Z"
+    },
+    {
+      "name": "UI: 文本 LLM Tab 已激活",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:24.734Z"
+    },
+    {
+      "name": "UI: 通义千问 快速添加按钮",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:26.241Z"
+    },
+    {
+      "name": "UI: DeepSeek 快速添加按钮",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:26.245Z"
+    },
+    {
+      "name": "UI: OpenAI GPT 快速添加按钮",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:26.249Z"
+    },
+    {
+      "name": "UI: 表格出现通义千问行",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:27.800Z"
+    },
+    {
+      "name": "UI: 未配置 API Key 标签显示",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:27.926Z"
+    },
+    {
+      "name": "UI: 设为默认后出现\"默认\"标签",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:28.981Z"
+    },
+    {
+      "name": "UI: 删除后表格不再有通义千问行",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:30.046Z"
+    },
+    {
+      "name": "UI nav: 发布商品",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:31.730Z"
+    },
+    {
+      "name": "UI: Publish 步骤条存在",
+      "ok": true,
+      "extra": null,
+      "at": "2026-06-11T08:08:33.355Z"
+    }
+  ],
+  "apiSmoke": [
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/images/templates",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/images/templates/category/服装鞋包",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/products",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/drafts",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/logs",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/logs?action=publish",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/logs/publish-history?limit=10",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/backup/list",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/default",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/llm/",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/llm/default",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/images/images",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/batch/tasks",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "method": "GET",
+      "path": "/api/pdd/credentials",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "uiCases": [],
+  "pass": 45,
+  "fail": 0,
+  "endedAt": "2026-06-11T08:08:33.449Z"
+}
