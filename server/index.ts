@@ -8,6 +8,7 @@ import logsRoutes from './routes/logs'
 import backupRoutes from './routes/backup'
 import batchRoutes from './routes/batch'
 import providerRoutes from './routes/providers'
+import llmRoutes from './routes/llm'
 import { getConfig, ensureConfigExists } from './config'
 
 const app = express()
@@ -56,6 +57,7 @@ app.use('/api/batch', batchRoutes)
 
 // AI 提供商管理路由
 app.use('/api/providers', providerRoutes)
+app.use('/api/llm', llmRoutes)
 
 // SPA 路由回退 — 必须在所有 API 路由之后
 if (process.env.NODE_ENV === 'production') {

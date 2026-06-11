@@ -21,6 +21,7 @@ import {
   getCategories,
 } from '../services/image-gen/templates'
 import { DatabaseService } from '../services/database'
+import { createLlmProvider, naturalLanguageToPrompt } from '../services/llm'
 
 const router = Router()
 
@@ -506,6 +507,202 @@ router.post('/providers/models', async (req, res) => {
 // ============================================================
 
 /** 自然语言 → 专业电商 Prompt */
+
+// ============================================================
+// 一站式：自然语言 → LLM 出 prompt → 生图（可选参考图）
+// ============================================================
+
+router.post(
+  '/generate-from-natural-language',
+  uploadImage.single('referenceImage'),
+  async (req, res) => {
+    try {
+      // 解析参数：multipart 时走 req.body.params(JSON)，纯 JSON 时直接用 req.body
+      let params: Record<string, unknown>
+      if (typeof req.body?.params === 'string') {
+        try {
+          params = JSON.parse(req.body.params)
+        } catch {
+          return res.status(400).json({ success: false, error: 'params JSON 格式错误' })
+        }
+      } else {
+        params = (req.body || {}) as Record<string, unknown>
+      }
+
+      const {
+        description,
+        category,
+        platform,
+        styleHints,
+        providerConfig,
+        llmProviderId,
+        count = 4,
+        width = 1024,
+        height = 1024,
+        strength,
+        cfgScale,
+        seed,
+      } = params as {
+        description?: string
+        category?: string
+        platform?: string
+        styleHints?: string[]
+        providerConfig?: Record<string, unknown>
+        llmProviderId?: string
+        count?: number
+        width?: number
+        height?: number
+        strength?: number
+        cfgScale?: number
+        seed?: number
+      }
+
+      if (!description || !description.trim()) {
+        return res.status(400).json({ success: false, error: 'description 不能为空' })
+      }
+      if (!providerConfig || !(providerConfig as any).apiKey) {
+        return res.status(400).json({ success: false, error: '缺少生图提供商配置或 API Key' })
+      }
+
+      // ---- 第 1 步：用 LLM 把自然语言转成结构化 prompt ----
+      const db = getDb()
+      const llmRow = llmProviderId
+        ? db.getLlmProvider(llmProviderId)
+        : db.getDefaultLlmProvider()
+      if (!llmRow) {
+        return res.status(400).json({
+          success: false,
+          error: '未配置文本 LLM 提供商，请先在「设置 → 文本 LLM」中添加',
+        })
+      }
+
+      const llm = createLlmProvider({
+        id: String(llmRow.id),
+        name: String(llmRow.name),
+        endpoint: String(llmRow.endpoint),
+        apiKey: String(llmRow.api_key),
+        model: String(llmRow.model),
+        temperature: llmRow.temperature == null ? undefined : Number(llmRow.temperature),
+        maxTokens: llmRow.max_tokens == null ? undefined : Number(llmRow.max_tokens),
+        isDefault: Number(llmRow.is_default) === 1,
+      })
+
+      const file = req.file
+      const promptResult = await naturalLanguageToPrompt(llm, {
+        description: description.trim(),
+        category,
+        platform,
+        hasReferenceImage: !!file,
+        styleHints: Array.isArray(styleHints) ? styleHints : undefined,
+      })
+      const finalPrompt = promptResult.prompt
+
+      // ---- 第 2 步：根据是否有参考图，走文生图 / 图生图 ----
+      const imgProvider = createProvider(providerConfig as any)
+
+      let response
+      let mode: 'text-to-image' | 'image-to-image'
+      if (file) {
+        if (!imgProvider.generateFromImage) {
+          return res.status(400).json({
+            success: false,
+            error: `生图提供商 ${(providerConfig as any).name} 不支持图生图`,
+          })
+        }
+        const mime = file.mimetype || 'image/png'
+        const dataUri = `data:${mime};base64,${file.buffer.toString('base64')}`
+        response = await imgProvider.generateFromImage(dataUri, finalPrompt, count, {
+          width,
+          height,
+          strength,
+          cfgScale,
+          seed,
+          referenceImageBase64: dataUri,
+        })
+        mode = 'image-to-image'
+      } else {
+        response = await imgProvider.generate(finalPrompt, count, {
+          width,
+          height,
+          seed,
+        })
+        mode = 'text-to-image'
+      }
+
+      // ---- 第 3 步：下载落盘 + 入库 ----
+      const results: Array<{
+        localPath: string; url: string; width: number; height: number;
+        fileSize: number; format: string;
+      }> = []
+
+      for (const img of response.images) {
+        const imageUrl = img.url || img.base64
+        if (!imageUrl) continue
+
+        let localPath: string
+        if (img.base64) {
+          const hash = crypto.randomBytes(8).toString('hex')
+          localPath = path.join(DATA_DIR, `${hash}.png`)
+          fs.writeFileSync(localPath, Buffer.from(img.base64, 'base64'))
+        } else {
+          const dl = await axios.get(imageUrl, {
+            responseType: 'arraybuffer',
+            timeout: 30000,
+          })
+          const hash = crypto.randomBytes(8).toString('hex')
+          const ext = imageUrl.includes('.png') ? 'png' : 'jpg'
+          localPath = path.join(DATA_DIR, `${hash}.${ext}`)
+          fs.writeFileSync(localPath, dl.data)
+        }
+
+        const stats = fs.statSync(localPath)
+        const metadata = await processor.checkCompliance(localPath)
+        results.push({
+          localPath,
+          url: imageUrl!,
+          width: metadata.width,
+          height: metadata.height,
+          fileSize: stats.size,
+          format: metadata.format,
+        })
+      }
+
+      const dbForImages = getDb()
+      for (const r of results) {
+        dbForImages.addImage({
+          product_id: (params as any).productId || null,
+          local_path: r.localPath,
+          url: r.url,
+          type: mode === 'image-to-image' ? 'image-to-image' : 'natural-language',
+          provider: (providerConfig as any).name,
+          prompt: finalPrompt,
+          status: 'generated',
+          width: r.width,
+          height: r.height,
+          file_size: r.fileSize,
+        })
+      }
+
+      res.json({
+        success: true,
+        data: {
+          mode,
+          originalDescription: description.trim(),
+          prompt: finalPrompt,
+          attributes: promptResult.attributes,
+          llmProvider: { id: llmRow.id, name: llmRow.name, model: llmRow.model },
+          imageProvider: (providerConfig as any).name,
+          images: results,
+          count: results.length,
+        },
+      })
+    } catch (err: any) {
+      console.error('[一站式生图失败]', err.message)
+      res.status(500).json({ success: false, error: err.message || '一站式生图失败' })
+    }
+  }
+)
+
 router.post('/optimize-prompt', async (req, res) => {
   try {
     const { textModelConfig, description } = req.body

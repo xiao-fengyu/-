@@ -138,14 +138,24 @@ export class WanxProvider implements IImageProvider {
     const size = this.resolveSize(options)
     const n = Math.min(count, 4) // Wanx 单次最多 4 张
 
-    // 准备参考图：支持本地文件路径或 base64
+    // 准备参考图：支持 data URI、远程 URL、本地文件路径
     let imageUrl: string
     if (referenceImage.startsWith('data:')) {
       imageUrl = referenceImage
+    } else if (/^https?:\/\//.test(referenceImage)) {
+      imageUrl = referenceImage
     } else {
-      // 本地文件：转为 file:// URL（DashScope 不支持本地文件直接传）
-      // 需要用户确保图片可通过 URL 访问，或使用 base64 模式
-      throw new Error('Wanx 图生图需要参考图为 base64 格式或远程 URL')
+      // 本地文件：读出来转成 data URI
+      const fs = require('fs') as typeof import('fs')
+      const path = require('path') as typeof import('path')
+      if (!fs.existsSync(referenceImage)) {
+        throw new Error(`Wanx 图生图参考图不存在: ${referenceImage}`)
+      }
+      const buf = fs.readFileSync(referenceImage)
+      const ext = (path.extname(referenceImage) || '.png').slice(1).toLowerCase()
+      const mime =
+        ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'webp' ? 'image/webp' : 'image/png'
+      imageUrl = `data:${mime};base64,${buf.toString('base64')}`
     }
 
     // Step 1: 提交图生图异步任务

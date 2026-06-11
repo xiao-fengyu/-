@@ -283,3 +283,118 @@ export async function retryFailed(taskId: string, action: 'generate' | 'publish'
 }
 
 export default api
+
+
+// ============================================================
+// 文本 LLM 提供商管理（用于自然语言→prompt）
+// ============================================================
+
+export interface LlmProviderRecord {
+  id: string
+  name: string
+  endpoint: string
+  api_key: string
+  model: string
+  temperature?: number
+  max_tokens?: number
+  is_default?: number
+  created_at?: string
+}
+
+/** 列表 */
+export async function fetchLlmProviders() {
+  const res = await api.get('/api/llm/')
+  return res.data as { success: boolean; data: LlmProviderRecord[] }
+}
+
+/** 默认 LLM */
+export async function fetchDefaultLlmProvider() {
+  const res = await api.get('/api/llm/default')
+  return res.data as { success: boolean; data: LlmProviderRecord | null }
+}
+
+/** 新建/更新 LLM 提供商 */
+export async function saveLlmProvider(payload: {
+  id: string
+  name: string
+  endpoint: string
+  api_key: string
+  model: string
+  temperature?: number
+  max_tokens?: number
+  is_default?: boolean
+}) {
+  const res = await api.post('/api/llm/', payload)
+  return res.data as { success: boolean; message?: string; error?: string }
+}
+
+/** 设为默认 */
+export async function setDefaultLlmProvider(id: string) {
+  const res = await api.patch(`/api/llm/${id}/default`)
+  return res.data as { success: boolean; message?: string }
+}
+
+/** 删除 LLM 提供商 */
+export async function deleteLlmProvider(id: string) {
+  const res = await api.delete(`/api/llm/${id}`)
+  return res.data as { success: boolean; message?: string }
+}
+
+/** 自然语言 → prompt（仅生成 prompt，不直接生图） */
+export async function llmPromptFromText(payload: {
+  description: string
+  category?: string
+  platform?: string
+  hasReferenceImage?: boolean
+  styleHints?: string[]
+  llmProviderId?: string
+}) {
+  const res = await api.post('/api/llm/prompt-from-text', payload)
+  return res.data as {
+    success: boolean
+    data?: {
+      prompt: string
+      attributes?: Record<string, unknown>
+      llmProvider?: { id: string; name: string; model: string }
+    }
+    error?: string
+  }
+}
+
+// ============================================================
+// 一站式：自然语言 → LLM 出 prompt → 生图（参考图可选）
+// ============================================================
+
+export async function generateFromNaturalLanguage(params: {
+  description: string
+  providerConfig: Record<string, unknown>
+  llmProviderId?: string
+  category?: string
+  platform?: string
+  styleHints?: string[]
+  count?: number
+  width?: number
+  height?: number
+  strength?: number
+  cfgScale?: number
+  seed?: number
+  productId?: string
+  /** 可选：参考图（File），有就走图生图，没有就走文生图 */
+  referenceImage?: File | null
+}) {
+  const { referenceImage, ...rest } = params
+
+  if (referenceImage) {
+    const formData = new FormData()
+    formData.append('referenceImage', referenceImage)
+    formData.append('params', JSON.stringify(rest))
+    const res = await api.post('/api/images/generate-from-natural-language', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return res.data
+  }
+
+  const res = await api.post('/api/images/generate-from-natural-language', rest)
+  return res.data
+}
+

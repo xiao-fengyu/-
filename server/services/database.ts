@@ -98,6 +98,21 @@ function initializeSchema(database: Database.Database): void {
     )
   `)
 
+  // 文本 LLM 提供商配置（用于自然语言→prompt 优化）
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS llm_providers (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      endpoint TEXT NOT NULL,
+      api_key TEXT NOT NULL,
+      model TEXT NOT NULL,
+      temperature REAL DEFAULT 0.7,
+      max_tokens INTEGER DEFAULT 1024,
+      is_default INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+
   // 平台授权凭据
   database.exec(`
     CREATE TABLE IF NOT EXISTS platform_credentials (
@@ -475,6 +490,56 @@ export class DatabaseService {
 
   getProviders(): Array<Record<string, unknown>> {
     return this.db.prepare('SELECT * FROM image_providers ORDER BY created_at DESC').all() as Array<Record<string, unknown>>
+  }
+
+  /** ===== 文本 LLM 提供商 ===== */
+
+  saveLlmProvider(config: {
+    id: string; name: string; endpoint: string; api_key: string;
+    model: string; temperature?: number; max_tokens?: number; is_default?: number;
+  }): void {
+    this.db.prepare(`
+      INSERT OR REPLACE INTO llm_providers
+        (id, name, endpoint, api_key, model, temperature, max_tokens, is_default)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      config.id, config.name, config.endpoint, config.api_key, config.model,
+      config.temperature ?? 0.7, config.max_tokens ?? 1024, config.is_default ?? 0,
+    )
+  }
+
+  getLlmProviders(): Array<Record<string, unknown>> {
+    return this.db.prepare(
+      'SELECT * FROM llm_providers ORDER BY created_at DESC'
+    ).all() as Array<Record<string, unknown>>
+  }
+
+  getLlmProvider(id: string): Record<string, unknown> | undefined {
+    return this.db.prepare(
+      'SELECT * FROM llm_providers WHERE id = ?'
+    ).get(id) as Record<string, unknown> | undefined
+  }
+
+  getDefaultLlmProvider(): Record<string, unknown> | undefined {
+    const def = this.db.prepare(
+      'SELECT * FROM llm_providers WHERE is_default = 1 LIMIT 1'
+    ).get() as Record<string, unknown> | undefined
+    if (def) return def
+    return this.db.prepare(
+      'SELECT * FROM llm_providers ORDER BY created_at DESC LIMIT 1'
+    ).get() as Record<string, unknown> | undefined
+  }
+
+  setDefaultLlmProvider(id: string): void {
+    const tx = this.db.transaction((targetId: string) => {
+      this.db.prepare('UPDATE llm_providers SET is_default = 0').run()
+      this.db.prepare('UPDATE llm_providers SET is_default = 1 WHERE id = ?').run(targetId)
+    })
+    tx(id)
+  }
+
+  deleteLlmProvider(id: string): void {
+    this.db.prepare('DELETE FROM llm_providers WHERE id = ?').run(id)
   }
 
   /** ===== 操作日志 ===== */

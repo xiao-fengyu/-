@@ -4,7 +4,22 @@
 
 ## 简介
 
-基于用户描述的需求，AI 自动生成商品图片 → 用户确认/编辑 → 一键发布到电商平台（拼多多、淘宝、京东、1688），形成完整的自动化上架工作流。
+基于用户的**自然语言描述**（可选参考图），文本 LLM 自动转换为专业商品摄影 prompt → 喂给 AI 生图模型生成商品图 → 用户确认/编辑 → 一键发布到电商平台（拼多多、淘宝、京东、1688），形成完整的自动化上架工作流。
+
+核心链路：
+
+```
+用户大白话描述（例如"白色陶瓷马克杯，要拍出高级感"）
+   │  + 可选参考图
+   ▼
+文本 LLM（通义千问 / DeepSeek / OpenAI 等）→ 结构化电商 prompt
+   │
+   ▼
+AI 生图模型（DALL-E / 通义万相 / 任意 OpenAI 兼容端点）
+   │
+   ▼
+本地落盘 + 入库 → 一键上架到电商平台
+```
 
 ## 产品形态
 
@@ -147,6 +162,7 @@ Electron 打包后，数据目录位于 `%APPDATA%/e-platform/data/`。
 | 阶段九：图生图功能 | ✅ 已完成 | IImageProvider 扩展 generateFromImage + Wanx/CustomProvider 图生图实现 + 前端参考图上传 + Tab 切换 |
 | 阶段十：UI 全面重设计 | ✅ 已完成 | 工作站式布局 + 紫蓝渐变主题 + 三栏 AI 生成 + 分步发布表单 + 卡片仪表盘 |
 | 阶段十一：模型管理 + Prompt 优化 | ✅ 已完成 | 统一文本 LLM 管理入口 + 模型切换 + 大白话 → 专业 prompt 自动转换 |
+| 阶段十二：自然语言一站式生图 + LLM 持久化 | ✅ 已完成 | 文本 LLM 服务化 + DB 持久化 + DALL-E/Wanx 图生图补全 + 一站式接口 |
 
 ### 已完成详情
 - [x] 项目骨架搭建（Electron + React + TypeScript + Vite）
@@ -374,6 +390,60 @@ getApiBaseUrl: () => {
 - [x] 文生图/图生图都能切换模型
 - [x] TypeScript 编译零错误
 - [x] 所有改动已 git push
+
+### 阶段十二：自然语言一站式生图 + LLM 持久化 ✅
+
+**目标**：把"自然语言 → 专业 prompt → 生图"做成开箱即用的一条链路，并且让用户可以**自定义任意生图模型和 LLM 模型**。
+
+#### 新增能力
+
+- **文本 LLM 服务化（OpenAI 兼容协议）**
+  - 一份代码同时跑通 OpenAI、通义千问 DashScope-OpenAI 兼容、DeepSeek、智谱、月之暗面、本地 vLLM/Ollama
+  - 端点容错：用户填 `https://api.x` / `https://api.x/v1` / `https://api.x/v1/chat/completions` 都能正确解析
+- **LLM 配置持久化**
+  - DB 新增 `llm_providers` 表（id / name / endpoint / api_key / model / temperature / max_tokens / is_default）
+  - 取代 zustand 内存状态，重启不丢
+- **DALL-E 图生图补齐**
+  - 走 OpenAI `images/edits` 端点，参考图自动支持本地路径 / data URI / 远程 URL 三种形式
+- **通义万相图生图体验改善**
+  - 取消"必须是 base64 或 URL"的硬限制，本地文件直接读成 data URI 自动转
+- **一站式 API**
+  - `POST /api/images/generate-from-natural-language`
+  - 自动判断有无参考图，决定走文生图还是图生图
+- **前端"💬 自然语言"模式**
+  - ImageGenerator 页加第三个 Tab，独立的描述输入 + LLM 提供商选择 + 可选参考图
+
+#### 新增接口
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/llm/` | 列出所有文本 LLM 提供商 |
+| GET | `/api/llm/default` | 取默认 LLM |
+| POST | `/api/llm/` | 新建/更新 LLM 提供商 |
+| PATCH | `/api/llm/:id/default` | 设为默认 |
+| DELETE | `/api/llm/:id` | 删除 LLM 提供商 |
+| POST | `/api/llm/prompt-from-text` | 自然语言 → 结构化 prompt（不直接生图） |
+| POST | `/api/images/generate-from-natural-language` | 自然语言 + 可选参考图 → LLM 出 prompt → 生图 |
+
+#### 涉及文件
+
+- 新增：`server/services/llm/{types,openai-compatible,provider,prompt-engineer,index}.ts`
+- 新增：`server/routes/llm.ts`
+- 修改：`server/services/image-gen/dalle.ts`（加 `generateFromImage`）
+- 修改：`server/services/image-gen/wanx.ts`（参考图三种形式自动适配）
+- 修改：`server/services/database.ts`（`llm_providers` 表 + 6 个 CRUD）
+- 修改：`server/routes/images.ts`（一站式路由）
+- 修改：`server/index.ts`（挂载 `/api/llm`）
+- 修改：`src/services/api.ts`（LLM CRUD + `generateFromNaturalLanguage`）
+- 修改：`src/pages/ImageGenerator/index.tsx`（新增"自然语言"模式）
+
+#### 验收标准
+- [x] 用户能在「设置」中自定义任意 OpenAI 兼容 LLM 端点
+- [x] 用户能在「AI 生成 → 自然语言」模式下输入大白话生成商品图
+- [x] DALL-E、通义万相、自定义提供商三家都支持图生图
+- [x] LLM 配置写入 SQLite，重启后保留
+- [x] TypeScript 编译零错误（前端 + 后端 + Electron）
+- [x] vite build 通过
 
 ## 配置说明
 

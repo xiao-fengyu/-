@@ -8,6 +8,8 @@ import {
   fetchTemplates, renderTemplate, generateImages, generateImagesFromImage,
   checkCompliance, fetchImages, deleteImage,
   fetchProviderModels, optimizePrompt,
+  generateFromNaturalLanguage, fetchLlmProviders,
+  type LlmProviderRecord,
 } from '@/services/api'
 import { useAppStore } from '@/store'
 import './ImageGenerator.css'
@@ -44,7 +46,7 @@ export default function ImageGeneratorPage() {
   const { providers, textModels } = useAppStore()
 
   // 状态
-  const [mode, setMode] = useState<'text2image' | 'image2image'>('text2image')
+  const [mode, setMode] = useState<'text2image' | 'image2image' | 'natural'>('text2image')
   const [categories, setCategories] = useState<string[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null)
@@ -63,6 +65,11 @@ export default function ImageGeneratorPage() {
   const [historyImages, setHistoryImages] = useState<any[]>([])
   const [referenceImage, setReferenceImage] = useState<{ file: File; preview: string } | null>(null)
 
+  // 自然语言模式：用户原始描述 + 后端 LLM 提供商
+  const [nlDescription, setNlDescription] = useState('')
+  const [llmProviders, setLlmProviders] = useState<LlmProviderRecord[]>([])
+  const [selectedLlmProviderId, setSelectedLlmProviderId] = useState<string>('')
+
   // 加载模板和历史图片
   useEffect(() => {
     fetchTemplates().then((res: any) => {
@@ -73,6 +80,14 @@ export default function ImageGeneratorPage() {
 
     fetchImages().then((res: any) => {
       if (res.success) setHistoryImages(res.data.images)
+    }).catch(() => {})
+
+    fetchLlmProviders().then((res) => {
+      if (res.success) {
+        setLlmProviders(res.data)
+        const def = res.data.find((p) => p.is_default === 1)
+        setSelectedLlmProviderId(def?.id || res.data[0]?.id || '')
+      }
     }).catch(() => {})
   }, [])
 
@@ -194,6 +209,49 @@ export default function ImageGeneratorPage() {
     }
   }
 
+  // 自然语言一站式：用户描述 → LLM 出 prompt → 喂给生图模型
+  const handleGenerateFromNaturalLanguage = async () => {
+    if (!nlDescription.trim()) return message.warning('请输入商品的自然语言描述')
+    if (!selectedProvider) return message.warning('请选择 AI 生图提供商')
+    if (llmProviders.length === 0) {
+      return message.warning('请先在「设置 → 文本 LLM」中添加至少一个 LLM 提供商')
+    }
+
+    const provider = providers.find(p => p.id === selectedProvider)
+    if (!provider) return message.warning('请先在设置中添加 AI 提供商')
+
+    const effectiveModel = selectedModel || provider.model
+
+    setGenerating(true)
+    try {
+      const res = await generateFromNaturalLanguage({
+        description: nlDescription.trim(),
+        providerConfig: {
+          id: provider.id, name: provider.name, type: provider.type,
+          endpoint: provider.endpoint, apiKey: provider.apiKey,
+          model: effectiveModel, maxImages: provider.maxImages,
+          defaultParams: {}, isDefault: provider.isDefault,
+        },
+        llmProviderId: selectedLlmProviderId || undefined,
+        count, width, height,
+        referenceImage: referenceImage?.file || null,
+      })
+
+      if (res.success) {
+        setImages(res.data.images.map((img: GeneratedImage) => ({ ...img, selected: false })))
+        if (res.data.prompt) setPrompt(res.data.prompt)
+        message.success(`成功生成 ${res.data.count} 张图片（${res.data.mode === 'image-to-image' ? '图生图' : '文生图'}）`)
+        fetchImages().then((r: any) => { if (r.success) setHistoryImages(r.data.images) })
+      } else {
+        message.error(res.error || '生成失败')
+      }
+    } catch (err: any) {
+      message.error(err.message || '一站式生图失败')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   // 合规检查
   const handleCheckCompliance = async (img: GeneratedImage, index: number) => {
     try {
@@ -286,6 +344,9 @@ export default function ImageGeneratorPage() {
         <div className="gen-center">
           {/* 模式切换 */}
           <div className="gmt">
+            <div className={`gmt-t ${mode === 'natural' ? 'a' : ''}`} onClick={() => setMode('natural')}>
+              💬 自然语言
+            </div>
             <div className={`gmt-t ${mode === 'text2image' ? 'a' : ''}`} onClick={() => setMode('text2image')}>
               📝 文生图
             </div>
@@ -293,6 +354,70 @@ export default function ImageGeneratorPage() {
               🖼️ 图生图
             </div>
           </div>
+
+          {/* 自然语言模式：用户描述 + 可选参考图 + LLM 选择 */}
+          {mode === 'natural' && (
+            <div style={{ marginBottom: 12 }}>
+              <div className="fg">
+                <label>商品描述（用大白话即可）</label>
+                <TextArea
+                  rows={3}
+                  placeholder="例如：白色陶瓷马克杯，要拍出高级感，浅灰背景，自然光..."
+                  value={nlDescription}
+                  onChange={e => setNlDescription(e.target.value)}
+                  className="fi fta"
+                />
+              </div>
+              <div className="fg">
+                <label>文本 LLM（用来把描述转成专业 prompt）</label>
+                <Select
+                  className="fi" style={{ width: '100%' }}
+                  placeholder={llmProviders.length === 0 ? '请先在设置中添加 LLM 提供商' : '选择 LLM 提供商'}
+                  value={selectedLlmProviderId || undefined}
+                  onChange={setSelectedLlmProviderId}
+                  options={llmProviders.map(m => ({
+                    label: `${m.name} (${m.model})${m.is_default === 1 ? ' · 默认' : ''}`,
+                    value: m.id,
+                  }))}
+                  disabled={llmProviders.length === 0}
+                />
+              </div>
+              <div className="fg">
+                <label>参考图（可选，传了就走图生图）</label>
+                {referenceImage ? (
+                  <div style={{ position: 'relative', textAlign: 'center' }}>
+                    <img
+                      src={referenceImage.preview}
+                      alt="参考图"
+                      style={{ maxWidth: '100%', maxHeight: 160, borderRadius: 8, border: '1px solid #e2e8f0' }}
+                    />
+                    <Button
+                      size="small" danger
+                      style={{ position: 'absolute', top: 8, right: 8 }}
+                      onClick={() => setReferenceImage(null)}
+                    >✕</Button>
+                  </div>
+                ) : (
+                  <Upload.Dragger
+                    accept="image/*" showUploadList={false} maxCount={1}
+                    beforeUpload={(file) => {
+                      const reader = new FileReader()
+                      reader.onload = () => setReferenceImage({ file, preview: reader.result as string })
+                      reader.readAsDataURL(file)
+                      return false
+                    }}
+                    onRemove={() => setReferenceImage(null)}
+                  >
+                    <div className="uz">
+                      <div className="ui">📁</div>
+                      <p>点击或拖拽上传参考图（可选）</p>
+                      <div className="uh">支持 JPG/PNG/WebP，最大 10MB</div>
+                    </div>
+                  </Upload.Dragger>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* 图生图：上传区 */}
           {mode === 'image2image' && (
@@ -331,7 +456,8 @@ export default function ImageGeneratorPage() {
             </div>
           )}
 
-          {/* 商品名称 */}
+          {/* 商品名称（自然语言模式不需要） */}
+          {mode !== 'natural' && (
           <div className="fg">
             <label>商品主体</label>
             <Input
@@ -340,8 +466,10 @@ export default function ImageGeneratorPage() {
               className="fi"
             />
           </div>
+          )}
 
-          {/* AI 描述 */}
+          {/* AI 描述（自然语言模式不需要，由 LLM 自动生成） */}
+          {mode !== 'natural' && (
           <div className="fg">
             <label>AI 描述</label>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -372,6 +500,7 @@ export default function ImageGeneratorPage() {
               </div>
             </div>
           </div>
+          )}
 
           {/* 参数行 */}
           <div className="fr">
@@ -423,7 +552,13 @@ export default function ImageGeneratorPage() {
             type="primary" size="large" block
             icon={<ThunderboltOutlined />}
             loading={generating}
-            onClick={mode === 'image2image' ? handleGenerateFromImage : handleGenerate}
+            onClick={
+              mode === 'natural'
+                ? handleGenerateFromNaturalLanguage
+                : mode === 'image2image'
+                  ? handleGenerateFromImage
+                  : handleGenerate
+            }
             className="bg"
           >
             {generating ? '生成中...' : '✨ 生成图片'}
