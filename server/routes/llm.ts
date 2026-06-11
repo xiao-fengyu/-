@@ -53,10 +53,11 @@ router.get('/default', (_req, res) => {
 router.post('/', (req, res) => {
   try {
     const { id, name, endpoint, api_key, model, temperature, max_tokens, is_default } = req.body || {}
-    if (!id || !name || !endpoint || !api_key || !model) {
+    // api_key 允许空（用户可通过"快速添加"先建条目，再点"改 Key"补齐）
+    if (!id || !name || !endpoint || !model) {
       return res.status(400).json({
         success: false,
-        error: '缺少必要字段：id, name, endpoint, api_key, model',
+        error: '缺少必要字段：id, name, endpoint, model',
       })
     }
     const db = getDb()
