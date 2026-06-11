@@ -187,14 +187,19 @@ router.post('/credentials', (req, res) => {
 
 // ===== 获取凭据列表 =====
 router.get('/credentials', (req, res) => {
-  const db = getDatabase()
-  const { platform } = req.query
-  const rows = db.prepare(
-    'SELECT id, platform, shop_name, access_token, expires_at, created_at FROM platform_credentials' +
-    (platform ? ' WHERE platform = ?' : '') +
-    ' ORDER BY created_at DESC'
-  ).all(platform)
-  res.json({ success: true, data: rows })
+  try {
+    const db = getDatabase()
+    const { platform } = req.query
+    const stmt = db.prepare(
+      'SELECT id, platform, shop_name, access_token, expires_at, created_at FROM platform_credentials' +
+      (platform ? ' WHERE platform = ?' : '') +
+      ' ORDER BY created_at DESC'
+    )
+    const rows = platform ? stmt.all(platform) : stmt.all()
+    res.json({ success: true, data: rows })
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message })
+  }
 })
 
 // ===== 获取类目 =====
