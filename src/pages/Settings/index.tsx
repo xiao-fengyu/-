@@ -1,7 +1,14 @@
-import { Card, Tabs, Form, Input, Button, Select, Space, message, Table, Modal } from 'antd'
-import { useState } from 'react'
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
-import { useAppStore, type ProviderConfig, type PlatformCredential, type TextModelConfig } from '../../store'
+import { Card, Tabs, Form, Input, Button, Select, Space, message, Table, Modal, Tag } from 'antd'
+import { useState, useEffect } from 'react'
+import { PlusOutlined, DeleteOutlined, StarOutlined, StarFilled } from '@ant-design/icons'
+import { useAppStore, type ProviderConfig, type PlatformCredential } from '../../store'
+import {
+  fetchLlmProviders,
+  saveLlmProvider,
+  deleteLlmProvider,
+  setDefaultLlmProvider,
+  type LlmProviderRecord,
+} from '../../services/api'
 import './Settings.css'
 
 const builtinProviders = [
@@ -27,8 +34,28 @@ export default function SettingsPage() {
   const {
     providers, addProvider, deleteProvider,
     platformCredentials, addPlatformCredential, deletePlatformCredential,
-    textModels, addTextModel, deleteTextModel,
   } = useAppStore()
+
+  // 后端持久化的 LLM 列表（取代 zustand 内存 store）
+  const [llmProviders, setLlmProviders] = useState<LlmProviderRecord[]>([])
+  const [llmLoading, setLlmLoading] = useState(false)
+
+  const loadLlmProviders = async () => {
+    setLlmLoading(true)
+    try {
+      const res = await fetchLlmProviders()
+      if (res.success) setLlmProviders(res.data)
+      else message.error('加载文本 LLM 失败')
+    } catch (err: any) {
+      message.error(err.message || '加载文本 LLM 失败')
+    } finally {
+      setLlmLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadLlmProviders()
+  }, [])
 
   const [providerModalOpen, setProviderModalOpen] = useState(false)
   const [textModelModalOpen, setTextModelModalOpen] = useState(false)
@@ -88,32 +115,115 @@ export default function SettingsPage() {
     message.success('已删除')
   }
 
-  // 文本 LLM
+  // 文本 LLM（走后端 /api/llm/*）
   const handleAddTextModel = async (values: any) => {
-    addTextModel({
-      name: values.name,
-      endpoint: values.endpoint,
-      apiKey: values.apiKey,
-      model: values.model,
-    })
-    message.success('文本 LLM 已添加')
-    setTextModelModalOpen(false)
-    textModelForm.resetFields()
+    try {
+      const id = `llm_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+      const res = await saveLlmProvider({
+        id,
+        name: values.name,
+        endpoint: values.endpoint,
+        api_key: values.apiKey,
+        model: values.model,
+        temperature: values.temperature == null ? undefined : Number(values.temperature),
+        max_tokens: values.maxTokens == null ? undefined : Number(values.maxTokens),
+        is_default: !!values.isDefault,
+      })
+      if (res.success) {
+        message.success('文本 LLM 已添加')
+        setTextModelModalOpen(false)
+        textModelForm.resetFields()
+        await loadLlmProviders()
+      } else {
+        message.error(res.error || '添加失败')
+      }
+    } catch (err: any) {
+      message.error(err.message || '添加失败')
+    }
   }
 
-  const handleDeleteTextModel = (id: string) => {
-    deleteTextModel(id)
-    message.success('已删除')
+  const handleDeleteTextModel = async (id: string) => {
+    try {
+      const res = await deleteLlmProvider(id)
+      if (res.success) {
+        message.success('已删除')
+        await loadLlmProviders()
+      }
+    } catch (err: any) {
+      message.error(err.message || '删除失败')
+    }
   }
 
-  const handleQuickAddTextModel = (preset: typeof builtinTextModels[0]) => {
-    addTextModel({
-      name: preset.name,
-      endpoint: preset.endpoint,
-      apiKey: '',
-      model: preset.model,
+  const handleQuickAddTextModel = async (preset: typeof builtinTextModels[0]) => {
+    try {
+      const id = `llm_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+      const res = await saveLlmProvider({
+        id,
+        name: preset.name,
+        endpoint: preset.endpoint,
+        api_key: '',
+        model: preset.model,
+        is_default: llmProviders.length === 0,
+      })
+      if (res.success) {
+        message.success(`${preset.name} 已添加，请填写 API Key`)
+        await loadLlmProviders()
+      } else {
+        message.error(res.error || '添加失败')
+      }
+    } catch (err: any) {
+      message.error(err.message || '添加失败')
+    }
+  }
+
+  const handleSetDefaultLlm = async (id: string) => {
+    try {
+      const res = await setDefaultLlmProvider(id)
+      if (res.success) {
+        message.success('已设为默认')
+        await loadLlmProviders()
+      }
+    } catch (err: any) {
+      message.error(err.message || '设置失败')
+    }
+  }
+
+  const handleEditLlmKey = async (record: LlmProviderRecord) => {
+    Modal.confirm({
+      title: `更新 ${record.name} 的 API Key`,
+      content: (
+        <Input.Password
+          id={`llm-edit-${record.id}`}
+          placeholder="sk-..."
+          defaultValue=""
+        />
+      ),
+      onOk: async () => {
+        const el = document.getElementById(`llm-edit-${record.id}`) as HTMLInputElement | null
+        const newKey = el?.value?.trim()
+        if (!newKey) {
+          message.warning('API Key 不能为空')
+          return Promise.reject()
+        }
+        const res = await saveLlmProvider({
+          id: record.id,
+          name: record.name,
+          endpoint: record.endpoint,
+          api_key: newKey,
+          model: record.model,
+          temperature: record.temperature,
+          max_tokens: record.max_tokens,
+          is_default: record.is_default === 1,
+        })
+        if (res.success) {
+          message.success('已更新')
+          await loadLlmProviders()
+        } else {
+          message.error(res.error || '更新失败')
+          return Promise.reject()
+        }
+      },
     })
-    message.success(`${preset.name} 已添加，请填写 API Key`)
   }
 
   const providerColumns = [
@@ -148,10 +258,37 @@ export default function SettingsPage() {
     { title: '端点', dataIndex: 'endpoint', key: 'endpoint', ellipsis: true },
     { title: '模型', dataIndex: 'model', key: 'model' },
     {
+      title: 'API Key',
+      key: 'api_key_status',
+      render: (_: any, record: LlmProviderRecord) =>
+        record.api_key
+          ? <Tag color="success">已配置</Tag>
+          : <Tag color="warning">未配置</Tag>,
+    },
+    {
+      title: '默认',
+      key: 'is_default',
+      render: (_: any, record: LlmProviderRecord) =>
+        record.is_default === 1
+          ? <Tag color="processing" icon={<StarFilled />}>默认</Tag>
+          : <Button
+              type="link" size="small" icon={<StarOutlined />}
+              onClick={() => handleSetDefaultLlm(record.id)}
+            >设为默认</Button>,
+    },
+    {
       title: '操作',
       key: 'action',
-      render: (_: any, record: TextModelConfig) => (
-        <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeleteTextModel(record.id)} />
+      render: (_: any, record: LlmProviderRecord) => (
+        <Space>
+          <Button type="link" size="small" onClick={() => handleEditLlmKey(record)}>
+            改 Key
+          </Button>
+          <Button
+            type="link" size="small" danger icon={<DeleteOutlined />}
+            onClick={() => handleDeleteTextModel(record.id)}
+          />
+        </Space>
       ),
     },
   ]
@@ -260,9 +397,10 @@ export default function SettingsPage() {
                 >
                   <Table
                     columns={textModelColumns}
-                    dataSource={textModels.map(m => ({ ...m, key: m.id }))}
+                    dataSource={llmProviders.map(m => ({ ...m, key: m.id }))}
+                    loading={llmLoading}
                     pagination={false}
-                    locale={{ emptyText: '暂无文本 LLM，Prompt 优化功能将无法使用' }}
+                    locale={{ emptyText: '暂无文本 LLM，Prompt 优化和自然语言生图将无法使用' }}
                   />
                 </Card>
               </>
@@ -290,6 +428,17 @@ export default function SettingsPage() {
           </Form.Item>
           <Form.Item name="model" label="模型名" rules={[{ required: true }]}>
             <Input placeholder="qwen-plus / deepseek-chat" />
+          </Form.Item>
+          <Form.Item name="temperature" label="Temperature（可选）">
+            <Input type="number" step="0.1" min={0} max={2} placeholder="0.7" />
+          </Form.Item>
+          <Form.Item name="maxTokens" label="最大 Token（可选）">
+            <Input type="number" min={1} max={32000} placeholder="1024" />
+          </Form.Item>
+          <Form.Item name="isDefault" valuePropName="checked">
+            <label>
+              <input type="checkbox" /> 设为默认 LLM
+            </label>
           </Form.Item>
           <Form.Item>
             <Button type="primary" htmlType="submit" block>添加</Button>

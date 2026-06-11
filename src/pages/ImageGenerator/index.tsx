@@ -7,8 +7,9 @@ import {
 import {
   fetchTemplates, renderTemplate, generateImages, generateImagesFromImage,
   checkCompliance, fetchImages, deleteImage,
-  fetchProviderModels, optimizePrompt,
+  fetchProviderModels,
   generateFromNaturalLanguage, fetchLlmProviders,
+  llmPromptFromText,
   type LlmProviderRecord,
 } from '@/services/api'
 import { useAppStore } from '@/store'
@@ -43,7 +44,7 @@ const TEMPLATE_ICONS: Record<string, string> = {
 }
 
 export default function ImageGeneratorPage() {
-  const { providers, textModels } = useAppStore()
+  const { providers } = useAppStore()
 
   // 状态
   const [mode, setMode] = useState<'text2image' | 'image2image' | 'natural'>('text2image')
@@ -286,22 +287,26 @@ export default function ImageGeneratorPage() {
 
   const selectedCount = images.filter(i => i.selected).length
 
-  // Prompt 优化
+  // Prompt 优化（走后端 /api/llm/prompt-from-text）
   const handleOptimizePrompt = async () => {
     if (!prompt.trim()) return message.warning('请先输入描述')
-    const textModel = textModels.find(m => m.id === selectedTextModel)
-    if (!textModel) return message.warning('请先选择文本 LLM（或到设置中添加）')
+    if (llmProviders.length === 0) {
+      return message.warning('请先在「设置 → 文本 LLM」中添加至少一个 LLM 提供商')
+    }
+    const llmId = selectedTextModel || selectedLlmProviderId
+    if (!llmId) {
+      return message.warning('请先选择文本 LLM')
+    }
 
     setOptimizing(true)
     try {
-      const res = await optimizePrompt({
-        endpoint: textModel.endpoint,
-        apiKey: textModel.apiKey,
-        model: textModel.model,
-      }, prompt.trim())
+      const res = await llmPromptFromText({
+        description: prompt.trim(),
+        llmProviderId: llmId,
+      })
 
-      if (res.success) {
-        setPrompt(res.data.optimizedPrompt)
+      if (res.success && res.data?.prompt) {
+        setPrompt(res.data.prompt)
         message.success('Prompt 已优化')
       } else {
         message.error(res.error || '优化失败')
@@ -482,20 +487,23 @@ export default function ImageGeneratorPage() {
               />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <Select
-                  style={{ width: 120 }}
+                  style={{ width: 140 }}
                   placeholder="选文本LLM"
-                  value={selectedTextModel || undefined}
+                  value={selectedTextModel || selectedLlmProviderId || undefined}
                   onChange={setSelectedTextModel}
                   size="small"
-                  options={textModels.map(m => ({ label: m.name, value: m.id }))}
+                  options={llmProviders.map(m => ({
+                    label: `${m.name}${m.is_default === 1 ? ' · 默认' : ''}`,
+                    value: m.id,
+                  }))}
                 />
                 <Button
                   icon={<RobotOutlined />}
                   loading={optimizing}
-                  disabled={!selectedTextModel}
+                  disabled={llmProviders.length === 0}
                   onClick={handleOptimizePrompt}
                   size="small"
-                  style={{ width: 120 }}
+                  style={{ width: 140 }}
                 >AI 优化</Button>
               </div>
             </div>
