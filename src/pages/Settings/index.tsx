@@ -11,18 +11,6 @@ import {
 } from '../../services/api'
 import './Settings.css'
 
-const builtinProviders = [
-  { name: 'DALL-E 3', endpoint: 'https://api.openai.com/v1/images/generations', model: 'dall-e-3' },
-  { name: '通义万相', endpoint: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis', model: 'wanx-v1' },
-  { name: '文心一格', endpoint: 'https://aip.baidubce.com/rpc/2.0/ernievilg/v1/txt2img', model: 'ernie-vilg-v2' },
-]
-
-const builtinTextModels = [
-  { name: '通义千问', endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-plus' },
-  { name: 'DeepSeek', endpoint: 'https://api.deepseek.com/v1', model: 'deepseek-chat' },
-  { name: 'OpenAI GPT', endpoint: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
-]
-
 const platformOptions = [
   { label: '拼多多', value: 'pinduoduo' },
   { label: '淘宝', value: 'taobao' },
@@ -84,19 +72,6 @@ export default function SettingsPage() {
     message.success('已删除')
   }
 
-  const handleQuickAdd = (preset: typeof builtinProviders[0]) => {
-    addProvider({
-      name: preset.name,
-      type: 'api',
-      endpoint: preset.endpoint,
-      apiKey: '',
-      model: preset.model,
-      maxImages: 4,
-      isDefault: false,
-    })
-    message.success(`${preset.name} 已添加，请填写 API Key`)
-  }
-
   // 平台凭据
   const handleAddPlatform = async (values: any) => {
     addPlatformCredential({
@@ -151,28 +126,6 @@ export default function SettingsPage() {
       }
     } catch (err: any) {
       message.error(err.message || '删除失败')
-    }
-  }
-
-  const handleQuickAddTextModel = async (preset: typeof builtinTextModels[0]) => {
-    try {
-      const id = `llm_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-      const res = await saveLlmProvider({
-        id,
-        name: preset.name,
-        endpoint: preset.endpoint,
-        api_key: '',
-        model: preset.model,
-        is_default: llmProviders.length === 0,
-      })
-      if (res.success) {
-        message.success(`${preset.name} 已添加，请填写 API Key`)
-        await loadLlmProviders()
-      } else {
-        message.error(res.error || '添加失败')
-      }
-    } catch (err: any) {
-      message.error(err.message || '添加失败')
     }
   }
 
@@ -305,28 +258,18 @@ export default function SettingsPage() {
             children: (
               <>
                 <Card
-                  title="快速添加内置模板"
+                  title="已添加的提供商"
                   extra={
                     <Button type="primary" icon={<PlusOutlined />} onClick={() => setProviderModalOpen(true)}>
                       自定义添加
                     </Button>
                   }
-                  style={{ marginBottom: 16 }}
                 >
-                  <Space wrap>
-                    {builtinProviders.map((p) => (
-                      <Button key={p.name} onClick={() => handleQuickAdd(p)}>
-                        + {p.name}
-                      </Button>
-                    ))}
-                  </Space>
-                </Card>
-                <Card title="已添加的提供商">
                   <Table
                     columns={providerColumns}
                     dataSource={providers.map(p => ({ ...p, key: p.id }))}
                     pagination={false}
-                    locale={{ emptyText: '暂无提供商，请先添加' }}
+                    locale={{ emptyText: '暂无提供商，请先添加自定义提供商' }}
                   />
                 </Card>
               </>
@@ -373,21 +316,6 @@ export default function SettingsPage() {
             children: (
               <>
                 <Card
-                  title="快速添加内置模板"
-                  style={{ marginBottom: 16 }}
-                >
-                  <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 12 }}>
-                    用于 Prompt 优化等文本任务。兼容 OpenAI Chat Completions API 的端点均可。
-                  </p>
-                  <Space wrap>
-                    {builtinTextModels.map((p) => (
-                      <Button key={p.name} onClick={() => handleQuickAddTextModel(p)}>
-                        + {p.name}
-                      </Button>
-                    ))}
-                  </Space>
-                </Card>
-                <Card
                   title="已添加的文本 LLM"
                   extra={
                     <Button type="primary" icon={<PlusOutlined />} onClick={() => setTextModelModalOpen(true)}>
@@ -395,6 +323,9 @@ export default function SettingsPage() {
                     </Button>
                   }
                 >
+                  <p style={{ color: '#94a3b8', fontSize: 12, marginBottom: 12 }}>
+                    用于 Prompt 优化等文本任务。兼容 OpenAI Chat Completions API 的端点均可。
+                  </p>
                   <Table
                     columns={textModelColumns}
                     dataSource={llmProviders.map(m => ({ ...m, key: m.id }))}
@@ -418,7 +349,7 @@ export default function SettingsPage() {
       >
         <Form form={textModelForm} onFinish={handleAddTextModel} layout="vertical">
           <Form.Item name="name" label="名称" rules={[{ required: true }]}>
-            <Input placeholder="例如：通义千问 / DeepSeek" />
+            <Input placeholder="例如：我的文本模型" />
           </Form.Item>
           <Form.Item name="endpoint" label="API 端点" rules={[{ required: true }]}>
             <Input placeholder="https://.../v1" />
@@ -427,7 +358,7 @@ export default function SettingsPage() {
             <Input.Password placeholder="sk-..." />
           </Form.Item>
           <Form.Item name="model" label="模型名" rules={[{ required: true }]}>
-            <Input placeholder="qwen-plus / deepseek-chat" />
+            <Input placeholder="model-name" />
           </Form.Item>
           <Form.Item name="temperature" label="Temperature（可选）">
             <Input type="number" step="0.1" min={0} max={2} placeholder="0.7" />
