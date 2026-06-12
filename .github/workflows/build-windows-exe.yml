@@ -32,7 +32,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+
+      - name: Configure npm cache
+        shell: pwsh
+        run: |
+          npm config set cache "${{ runner.temp }}\npm-cache" --global
+          npm cache verify
 
       - name: Install dependencies
         run: npm install --ignore-scripts
@@ -78,6 +83,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_NUMBER: ${{ github.run_number }}
         run: |
+          if (-not (Test-Path "build-output.log")) {
+            "build-output.log was not created; failure happened before packaging." | Set-Content -Encoding UTF8 "build-output.log"
+          }
           $logBytes = [System.IO.File]::ReadAllBytes("build-output.log")
           $logBase64 = [System.Convert]::ToBase64String($logBytes)
           $body = @{
