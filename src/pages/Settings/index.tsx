@@ -53,13 +53,14 @@ export default function SettingsPage() {
 
   // AI 提供商
   const handleAddProvider = async (values: any) => {
+    const maxImages = Number(values.maxImages || 4)
     addProvider({
       name: values.name,
       type: 'api',
       endpoint: values.endpoint,
       apiKey: values.apiKey,
       model: values.model,
-      maxImages: values.maxImages || 4,
+      maxImages,
       isDefault: values.isDefault || false,
     })
     message.success('提供商已添加')
@@ -396,7 +397,20 @@ export default function SettingsPage() {
           <Form.Item name="model" label="模型名" rules={[{ required: true }]}>
             <Input placeholder="model-name" />
           </Form.Item>
-          <Form.Item name="maxImages" label="单次最大图片数" initialValue={4}>
+          <Form.Item
+            name="maxImages"
+            label="单次最大图片数"
+            initialValue={4}
+            rules={[
+              {
+                validator: (_, value) => {
+                  const maxImages = Number(value)
+                  if (Number.isInteger(maxImages) && maxImages >= 1 && maxImages <= 16) return Promise.resolve()
+                  return Promise.reject(new Error('请输入 1-16 之间的整数'))
+                },
+              },
+            ]}
+          >
             <Input type="number" min={1} max={16} />
           </Form.Item>
           <Form.Item>
