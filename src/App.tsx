@@ -27,13 +27,13 @@ function App() {
         open={firstRun}
         onOk={handleFirstRunOk}
         okText="知道了"
-        cancelText={false}
+        cancelButtonProps={{ style: { display: 'none' } }}
         maskClosable={false}
       >
         <p>首次使用请先配置 AI 提供商：</p>
         <ol>
           <li>点击左侧菜单 <strong>设置</strong></li>
-          <li>在 <strong>AI 提供商</strong> 区域添加你的 AI 服务（如 DALL-E 3、通义万相等）</li>
+          <li>在 <strong>AI 提供商</strong> 区域添加你的自定义图片生成服务</li>
           <li>填入 API Key 和 Endpoint</li>
           <li>即可开始生成图片</li>
         </ol>
