@@ -70,6 +70,25 @@ function parseKeyFile(file) {
   return data
 }
 
+function validatePrerequisites() {
+  const exeExists = fs.existsSync(EXE_PATH)
+  const keyExists = fs.existsSync(KEY_PATH)
+  addCheck('installed Electron executable exists', exeExists, { exePath: EXE_PATH })
+  addCheck('real LLM/image key file exists', keyExists, { keyPath: KEY_PATH })
+
+  if (!exeExists || !keyExists) return null
+
+  const key = parseKeyFile(KEY_PATH)
+  const keyComplete = !!key.baseUrl && !!key.apiKey && !!key.textModel && !!key.imageModel
+  addCheck('key file loaded without logging secret', keyComplete, {
+    baseUrl: key.baseUrl,
+    textModel: key.textModel,
+    imageModel: key.imageModel,
+    keyLength: key.apiKey ? key.apiKey.length : 0,
+  })
+  return keyComplete ? key : null
+}
+
 async function waitHealth(api, timeoutMs = 45000) {
   const start = Date.now()
   while (Date.now() - start < timeoutMs) {
@@ -281,13 +300,8 @@ async function main() {
   let cleanedCreatedLlm = false
   let cleanedCreatedImageProvider = false
   try {
-    const key = parseKeyFile(KEY_PATH)
-    addCheck('key file loaded without logging secret', !!key.baseUrl && !!key.apiKey && !!key.textModel && !!key.imageModel, {
-      baseUrl: key.baseUrl,
-      textModel: key.textModel,
-      imageModel: key.imageModel,
-      keyLength: key.apiKey.length,
-    })
+    const key = validatePrerequisites()
+    if (!key) return
 
     const existingImages = new Set(fs.existsSync(IMAGE_DIR) ? fs.readdirSync(IMAGE_DIR) : [])
     api = await pwRequest.newContext({ timeout: 20000 })
