@@ -43,6 +43,10 @@ const TEMPLATE_ICONS: Record<string, string> = {
   '文具办公': '📚', '自定义': '🔧',
 }
 
+function getErrorMessage(err: any, fallback: string) {
+  return err.response?.data?.error || err.message || fallback
+}
+
 export default function ImageGeneratorPage() {
   const { providers } = useAppStore()
 
@@ -65,6 +69,7 @@ export default function ImageGeneratorPage() {
   const [images, setImages] = useState<GeneratedImage[]>([])
   const [historyImages, setHistoryImages] = useState<any[]>([])
   const [referenceImage, setReferenceImage] = useState<{ file: File; preview: string } | null>(null)
+  const [generationError, setGenerationError] = useState<string>('')
 
   // 自然语言模式：用户原始描述 + 后端 LLM 提供商
   const [nlDescription, setNlDescription] = useState('')
@@ -136,6 +141,7 @@ export default function ImageGeneratorPage() {
 
   // 生成图片
   const handleGenerate = async () => {
+    setGenerationError('')
     if (!prompt.trim()) return message.warning('请输入商品描述或选择模板')
     if (!selectedProvider) return message.warning('请选择 AI 提供商')
 
@@ -162,10 +168,13 @@ export default function ImageGeneratorPage() {
         message.success(`成功生成 ${res.data.count} 张图片`)
         fetchImages().then((r: any) => { if (r.success) setHistoryImages(r.data.images) })
       } else {
+        setGenerationError(res.error || '生成失败')
         message.error(res.error || '生成失败')
       }
     } catch (err: any) {
-      message.error(err.message || '生成失败')
+      const errorMessage = getErrorMessage(err, '生成失败')
+      setGenerationError(errorMessage)
+      message.error(errorMessage)
     } finally {
       setGenerating(false)
     }
@@ -173,6 +182,7 @@ export default function ImageGeneratorPage() {
 
   // 图生图
   const handleGenerateFromImage = async () => {
+    setGenerationError('')
     if (!referenceImage) return message.warning('请上传参考图')
     if (!prompt.trim()) return message.warning('请输入描述')
     if (!selectedProvider) return message.warning('请选择 AI 提供商')
@@ -201,10 +211,13 @@ export default function ImageGeneratorPage() {
         message.success(`成功生成 ${res.data.count} 张图片`)
         fetchImages().then((r: any) => { if (r.success) setHistoryImages(r.data.images) })
       } else {
+        setGenerationError(res.error || '生成失败')
         message.error(res.error || '生成失败')
       }
     } catch (err: any) {
-      message.error(err.message || '图生图失败')
+      const errorMessage = getErrorMessage(err, '图生图失败')
+      setGenerationError(errorMessage)
+      message.error(errorMessage)
     } finally {
       setGenerating(false)
     }
@@ -212,6 +225,7 @@ export default function ImageGeneratorPage() {
 
   // 自然语言一站式：用户描述 → LLM 出 prompt → 喂给生图模型
   const handleGenerateFromNaturalLanguage = async () => {
+    setGenerationError('')
     if (!nlDescription.trim()) return message.warning('请输入商品的自然语言描述')
     if (!selectedProvider) return message.warning('请选择 AI 生图提供商')
     if (llmProviders.length === 0) {
@@ -244,10 +258,13 @@ export default function ImageGeneratorPage() {
         message.success(`成功生成 ${res.data.count} 张图片（${res.data.mode === 'image-to-image' ? '图生图' : '文生图'}）`)
         fetchImages().then((r: any) => { if (r.success) setHistoryImages(r.data.images) })
       } else {
+        setGenerationError(res.error || '生成失败')
         message.error(res.error || '生成失败')
       }
     } catch (err: any) {
-      message.error(err.message || '一站式生图失败')
+      const errorMessage = getErrorMessage(err, '一站式生图失败')
+      setGenerationError(errorMessage)
+      message.error(errorMessage)
     } finally {
       setGenerating(false)
     }
@@ -581,6 +598,11 @@ export default function ImageGeneratorPage() {
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <Spin size="large" />
               <p style={{ marginTop: 12, color: '#94a3b8', fontSize: 12 }}>AI 正在生成中...</p>
+            </div>
+          ) : generationError ? (
+            <div style={{ padding: '12px 10px', borderRadius: 6, marginBottom: 12, background: '#fef2f2', color: '#b91c1c', fontSize: 12, lineHeight: 1.5 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>生成失败</div>
+              <div>{generationError}</div>
             </div>
           ) : images.length > 0 ? (
             <>

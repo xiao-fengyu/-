@@ -34,6 +34,7 @@ const report = {
     apiRows: 0,
     matchedApiRows: 0,
     visibleErrors: [],
+    generateRequests: [],
   },
   created: {
     imageProviderName: null,
@@ -61,12 +62,14 @@ function parseKeyFile(file) {
     if (idx === -1) continue
     const key = trimmed.slice(0, idx).trim()
     const value = trimmed.slice(idx + 1).trim()
-    if (key === 'base_url') data.baseUrl = value
+    if (key === 'base_url' || key === 'baseurl') data.baseUrl = value
     if (key === 'key') data.apiKey = value
     if (key === 'model') models.push(value)
+    if (key === 'text_model' || key === 'textModel') data.textModel = value
+    if (key === 'image_model' || key === 'imageModel') data.imageModel = value
   }
-  data.imageModel = models.find((value) => /image/i.test(value)) || models[1]
-  data.textModel = models.find((value) => !/image/i.test(value)) || models[0]
+  data.imageModel = data.imageModel || models.find((value) => /image/i.test(value)) || models[1] || models[0]
+  data.textModel = data.textModel || models.find((value) => !/image/i.test(value)) || models[0]
   return data
 }
 
@@ -222,6 +225,18 @@ async function collectVisibleResultImages(page) {
   })
 }
 
+async function waitForGenerationSettled(page) {
+  const generateButton = page.getByRole('button', { name: /生成图片|生成中/ })
+  await page.waitForFunction(() => document.body.textContent.includes('生成中'), null, { timeout: 5000 }).catch(() => {})
+  await page.waitForFunction(() => !document.body.textContent.includes('生成中'), null, { timeout: 240000 }).catch(() => {})
+  await generateButton.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {})
+  return await page.evaluate(() => ({
+    hasGeneratingText: document.body.textContent.includes('生成中'),
+    resultTiles: document.querySelectorAll('.ri').length,
+    historyTiles: document.querySelectorAll('.ht').length,
+  }))
+}
+
 async function collectHistoryImages(page) {
   return await page.evaluate(() => {
     return Array.from(document.querySelectorAll('.ht img')).map((img, index) => {
@@ -326,10 +341,40 @@ async function main() {
     await page.waitForTimeout(1000)
     addCheck('image provider selected in UI before generation', await page.getByText(imageProviderName, { exact: true }).count() > 0, { name: imageProviderName })
 
+    page.on('request', (request) => {
+      const url = request.url()
+      if (url.includes('/api/images/generate-from-natural-language') || url.includes('/api/images/generate')) {
+        report.evidence.generateRequests.push({
+          phase: 'request',
+          method: request.method(),
+          url,
+          at: new Date().toISOString(),
+        })
+      }
+    })
+    page.on('response', async (response) => {
+      const url = response.url()
+      if (url.includes('/api/images/generate-from-natural-language') || url.includes('/api/images/generate')) {
+        let body = ''
+        try {
+          body = (await response.text()).slice(0, 1200)
+        } catch {}
+        report.evidence.generateRequests.push({
+          phase: 'response',
+          status: response.status(),
+          url,
+          body,
+          at: new Date().toISOString(),
+        })
+      }
+    })
+
     await page.getByRole('button', { name: /生成图片/ }).click({ timeout: 10000 })
-    await page.waitForFunction(() => !document.body.textContent.includes('生成中'), null, { timeout: 240000 }).catch(() => {})
+    const generationState = await waitForGenerationSettled(page)
     await page.waitForTimeout(3000)
     await screenshot(page, 'visible-natural-after-generate')
+    addCheck('UI sent image generation API request', report.evidence.generateRequests.some((entry) => entry.phase === 'request'), { requests: report.evidence.generateRequests })
+    addCheck('UI generation loading settled', generationState.hasGeneratingText === false, generationState)
 
     report.evidence.visibleErrors = await collectVisibleErrors(page)
     addCheck('no visible UI error after generation', report.evidence.visibleErrors.length === 0, { visibleErrors: report.evidence.visibleErrors })
@@ -342,11 +387,15 @@ async function main() {
       images: visibleLoadedImages.map((img) => ({ index: img.index, naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight, renderedWidth: img.renderedWidth, renderedHeight: img.renderedHeight })),
     })
 
-    await page.locator('.ri').first().click({ timeout: 10000 })
-    await page.waitForTimeout(500)
-    report.evidence.selectedTiles = await page.locator('.ri.sel').count()
-    await screenshot(page, 'visible-natural-after-select')
-    addCheck('user can select a generated result tile', report.evidence.selectedTiles > 0, { selectedTiles: report.evidence.selectedTiles })
+    if (report.evidence.visibleImages.length > 0) {
+      await page.locator('.ri').first().click({ timeout: 10000 })
+      await page.waitForTimeout(500)
+      report.evidence.selectedTiles = await page.locator('.ri.sel').count()
+      await screenshot(page, 'visible-natural-after-select')
+      addCheck('user can select a generated result tile', report.evidence.selectedTiles > 0, { selectedTiles: report.evidence.selectedTiles })
+    } else {
+      addCheck('user can select a generated result tile', false, { reason: 'no result tiles to select' })
+    }
 
     const imagesAfter = fs.existsSync(IMAGE_DIR) ? fs.readdirSync(IMAGE_DIR) : []
     const newImages = imagesAfter.filter((name) => !existingImages.has(name)).map((name) => path.join(IMAGE_DIR, name))

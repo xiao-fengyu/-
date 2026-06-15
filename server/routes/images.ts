@@ -31,6 +31,22 @@ const DATA_DIR = process.env.DB_DIR
   : path.join(process.cwd(), 'data/images')
 const processor = new ImageProcessor(DATA_DIR)
 
+function extractErrorMessage(err: any): string {
+  const upstreamMessage = err.response?.data?.error?.message || err.response?.data?.message || err.response?.data?.error
+  if (typeof upstreamMessage === 'string' && upstreamMessage.trim()) return upstreamMessage.trim()
+  if (err.response?.status) return `Request failed with status code ${err.response.status}`
+  return err.message || '未知错误'
+}
+
+function stageError(stage: string, err: any): Error {
+  const message = extractErrorMessage(err)
+  const status = err.response?.status
+  const error = new Error(`${stage}失败${status ? ` (${status})` : ''}: ${message}`)
+  ;(error as any).stage = stage
+  ;(error as any).status = status
+  return error
+}
+
 // 图生图文件上传配置（内存存储，直接转 base64）
 const i2iStorage = multer.memoryStorage()
 const uploadImage = multer({
@@ -588,13 +604,18 @@ router.post(
       })
 
       const file = req.file
-      const promptResult = await naturalLanguageToPrompt(llm, {
-        description: description.trim(),
-        category,
-        platform,
-        hasReferenceImage: !!file,
-        styleHints: Array.isArray(styleHints) ? styleHints : undefined,
-      })
+      let promptResult
+      try {
+        promptResult = await naturalLanguageToPrompt(llm, {
+          description: description.trim(),
+          category,
+          platform,
+          hasReferenceImage: !!file,
+          styleHints: Array.isArray(styleHints) ? styleHints : undefined,
+        })
+      } catch (err: any) {
+        throw stageError('文本 LLM 生成 prompt', err)
+      }
       const finalPrompt = promptResult.prompt
 
       // ---- 第 2 步：根据是否有参考图，走文生图 / 图生图 ----
@@ -611,21 +632,29 @@ router.post(
         }
         const mime = file.mimetype || 'image/png'
         const dataUri = `data:${mime};base64,${file.buffer.toString('base64')}`
-        response = await imgProvider.generateFromImage(dataUri, finalPrompt, count, {
-          width,
-          height,
-          strength,
-          cfgScale,
-          seed,
-          referenceImageBase64: dataUri,
-        })
+        try {
+          response = await imgProvider.generateFromImage(dataUri, finalPrompt, count, {
+            width,
+            height,
+            strength,
+            cfgScale,
+            seed,
+            referenceImageBase64: dataUri,
+          })
+        } catch (err: any) {
+          throw stageError('图片生成 provider 请求', err)
+        }
         mode = 'image-to-image'
       } else {
-        response = await imgProvider.generate(finalPrompt, count, {
-          width,
-          height,
-          seed,
-        })
+        try {
+          response = await imgProvider.generate(finalPrompt, count, {
+            width,
+            height,
+            seed,
+          })
+        } catch (err: any) {
+          throw stageError('图片生成 provider 请求', err)
+        }
         mode = 'text-to-image'
       }
 
@@ -635,36 +664,40 @@ router.post(
         fileSize: number; format: string;
       }> = []
 
-      for (const img of response.images) {
-        const imageUrl = img.url || img.base64
-        if (!imageUrl) continue
+      try {
+        for (const img of response.images) {
+          const imageUrl = img.url || img.base64
+          if (!imageUrl) continue
 
-        let localPath: string
-        if (img.base64) {
-          const hash = crypto.randomBytes(8).toString('hex')
-          localPath = path.join(DATA_DIR, `${hash}.png`)
-          fs.writeFileSync(localPath, Buffer.from(img.base64, 'base64'))
-        } else {
-          const dl = await axios.get(imageUrl, {
-            responseType: 'arraybuffer',
-            timeout: 30000,
+          let localPath: string
+          if (img.base64) {
+            const hash = crypto.randomBytes(8).toString('hex')
+            localPath = path.join(DATA_DIR, `${hash}.png`)
+            fs.writeFileSync(localPath, Buffer.from(img.base64, 'base64'))
+          } else {
+            const dl = await axios.get(imageUrl, {
+              responseType: 'arraybuffer',
+              timeout: 30000,
+            })
+            const hash = crypto.randomBytes(8).toString('hex')
+            const ext = imageUrl.includes('.png') ? 'png' : 'jpg'
+            localPath = path.join(DATA_DIR, `${hash}.${ext}`)
+            fs.writeFileSync(localPath, dl.data)
+          }
+
+          const stats = fs.statSync(localPath)
+          const metadata = await processor.checkCompliance(localPath)
+          results.push({
+            localPath,
+            url: imageUrl!,
+            width: metadata.width,
+            height: metadata.height,
+            fileSize: stats.size,
+            format: metadata.format,
           })
-          const hash = crypto.randomBytes(8).toString('hex')
-          const ext = imageUrl.includes('.png') ? 'png' : 'jpg'
-          localPath = path.join(DATA_DIR, `${hash}.${ext}`)
-          fs.writeFileSync(localPath, dl.data)
         }
-
-        const stats = fs.statSync(localPath)
-        const metadata = await processor.checkCompliance(localPath)
-        results.push({
-          localPath,
-          url: imageUrl!,
-          width: metadata.width,
-          height: metadata.height,
-          fileSize: stats.size,
-          format: metadata.format,
-        })
+      } catch (err: any) {
+        throw stageError('图片下载或保存', err)
       }
 
       const dbForImages = getDb()
@@ -698,7 +731,12 @@ router.post(
       })
     } catch (err: any) {
       console.error('[一站式生图失败]', err.message)
-      res.status(500).json({ success: false, error: err.message || '一站式生图失败' })
+      res.status(500).json({
+        success: false,
+        error: err.message || '一站式生图失败',
+        stage: err.stage,
+        upstreamStatus: err.status,
+      })
     }
   }
 )

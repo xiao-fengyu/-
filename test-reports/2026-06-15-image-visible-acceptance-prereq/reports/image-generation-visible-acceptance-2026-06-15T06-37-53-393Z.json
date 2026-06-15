@@ -1,0 +1,55 @@
+{
+  "startedAt": "2026-06-15T06:37:53.394Z",
+  "acceptanceType": "user-visible",
+  "exePath": "C:\\Program Files\\e-platform\\e-platform.exe",
+  "apiBase": "http://127.0.0.1:3001",
+  "appDataDir": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data",
+  "imageDir": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images",
+  "checks": [
+    {
+      "name": "installed Electron executable exists",
+      "ok": true,
+      "extra": {
+        "exePath": "C:\\Program Files\\e-platform\\e-platform.exe"
+      },
+      "at": "2026-06-15T06:37:53.396Z"
+    },
+    {
+      "name": "real LLM/image key file exists",
+      "ok": false,
+      "extra": {
+        "keyPath": "C:\\eplatform-test\\real-llm.key"
+      },
+      "at": "2026-06-15T06:37:53.397Z"
+    },
+    {
+      "name": "cleanup key file from Windows test directory",
+      "ok": true,
+      "extra": {
+        "path": "C:\\eplatform-test\\real-llm.key",
+        "message": "ENOENT: no such file or directory, unlink 'C:\\eplatform-test\\real-llm.key'"
+      },
+      "at": "2026-06-15T06:37:53.397Z"
+    }
+  ],
+  "evidence": {
+    "screenshots": [],
+    "visibleImages": [],
+    "visibleImageMatches": [],
+    "historyImageMatches": [],
+    "selectedTiles": 0,
+    "historyImages": 0,
+    "generatedImages": [],
+    "apiRows": 0,
+    "matchedApiRows": 0,
+    "visibleErrors": []
+  },
+  "created": {
+    "imageProviderName": null,
+    "llmId": null,
+    "llmName": null
+  },
+  "pass": 2,
+  "fail": 1,
+  "finishedAt": "2026-06-15T06:37:53.397Z"
+}

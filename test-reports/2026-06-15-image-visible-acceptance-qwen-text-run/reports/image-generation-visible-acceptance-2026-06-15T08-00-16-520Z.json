@@ -1,0 +1,248 @@
+{
+  "startedAt": "2026-06-15T08:00:16.522Z",
+  "acceptanceType": "user-visible",
+  "exePath": "C:\\Program Files\\e-platform\\e-platform.exe",
+  "apiBase": "http://127.0.0.1:3001",
+  "appDataDir": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data",
+  "imageDir": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images",
+  "checks": [
+    {
+      "name": "installed Electron executable exists",
+      "ok": true,
+      "extra": {
+        "exePath": "C:\\Program Files\\e-platform\\e-platform.exe"
+      },
+      "at": "2026-06-15T08:00:16.523Z"
+    },
+    {
+      "name": "real LLM/image key file exists",
+      "ok": true,
+      "extra": {
+        "keyPath": "C:\\eplatform-test\\real-llm.key"
+      },
+      "at": "2026-06-15T08:00:16.524Z"
+    },
+    {
+      "name": "key file loaded without logging secret",
+      "ok": true,
+      "extra": {
+        "baseUrl": "https://openclawroot.com/v1",
+        "textModel": "qwen3.6-plus",
+        "imageModel": "gpt-image-2（生图）",
+        "keyLength": 51
+      },
+      "at": "2026-06-15T08:00:16.525Z"
+    },
+    {
+      "name": "installed Electron UI launched",
+      "ok": true,
+      "extra": {},
+      "at": "2026-06-15T08:00:21.045Z"
+    },
+    {
+      "name": "backend health ready",
+      "ok": true,
+      "extra": {},
+      "at": "2026-06-15T08:00:21.061Z"
+    },
+    {
+      "name": "UI added custom image provider in Settings",
+      "ok": true,
+      "extra": {
+        "name": "visible-img-1781510421120",
+        "visibleMatches": 1
+      },
+      "at": "2026-06-15T08:00:24.496Z"
+    },
+    {
+      "name": "API prepared custom text LLM for UI flow",
+      "ok": true,
+      "extra": {
+        "status": 200,
+        "id": "visible_llm_1781510424610",
+        "name": "visible-llm-1781510424610",
+        "model": "qwen3.6-plus"
+      },
+      "at": "2026-06-15T08:00:24.619Z"
+    },
+    {
+      "name": "image provider selected in UI before generation",
+      "ok": true,
+      "extra": {
+        "name": "visible-img-1781510421120"
+      },
+      "at": "2026-06-15T08:00:29.610Z"
+    },
+    {
+      "name": "UI sent image generation API request",
+      "ok": true,
+      "extra": {
+        "requests": [
+          {
+            "phase": "request",
+            "method": "POST",
+            "url": "http://127.0.0.1:3001/api/images/generate-from-natural-language",
+            "at": "2026-06-15T08:00:29.681Z"
+          },
+          {
+            "phase": "response",
+            "status": 500,
+            "url": "http://127.0.0.1:3001/api/images/generate-from-natural-language",
+            "body": "{\"success\":false,\"error\":\"图片生成 provider 请求失败 (503): [openclawroot.com] 无法连接，请切换网络后稍后重试或尝试切换模型\",\"stage\":\"图片生成 provider 请求\",\"upstreamStatus\":503}",
+            "at": "2026-06-15T08:00:55.058Z"
+          }
+        ]
+      },
+      "at": "2026-06-15T08:00:58.202Z"
+    },
+    {
+      "name": "UI generation loading settled",
+      "ok": true,
+      "extra": {
+        "hasGeneratingText": false,
+        "resultTiles": 0,
+        "historyTiles": 0
+      },
+      "at": "2026-06-15T08:00:58.203Z"
+    },
+    {
+      "name": "no visible UI error after generation",
+      "ok": true,
+      "extra": {
+        "visibleErrors": []
+      },
+      "at": "2026-06-15T08:00:58.207Z"
+    },
+    {
+      "name": "current result grid has requested visible loaded images",
+      "ok": false,
+      "extra": {
+        "visibleLoadedImages": 0,
+        "totalTiles": 0,
+        "images": []
+      },
+      "at": "2026-06-15T08:00:58.212Z"
+    },
+    {
+      "name": "user can select a generated result tile",
+      "ok": false,
+      "extra": {
+        "reason": "no result tiles to select"
+      },
+      "at": "2026-06-15T08:00:58.212Z"
+    },
+    {
+      "name": "script verified generated image files",
+      "ok": false,
+      "extra": {
+        "count": 0,
+        "images": []
+      },
+      "at": "2026-06-15T08:00:58.213Z"
+    },
+    {
+      "name": "script verified image dimensions and bytes",
+      "ok": true,
+      "extra": {
+        "images": []
+      },
+      "at": "2026-06-15T08:00:58.213Z"
+    },
+    {
+      "name": "script verified generated images visible via API",
+      "ok": false,
+      "extra": {
+        "apiRows": 0,
+        "matchedRows": 0
+      },
+      "at": "2026-06-15T08:00:58.223Z"
+    },
+    {
+      "name": "visible UI images match generated files or API rows",
+      "ok": false,
+      "extra": {
+        "matchedVisibleImages": 0,
+        "matches": []
+      },
+      "at": "2026-06-15T08:00:58.223Z"
+    },
+    {
+      "name": "generated images remain visible after returning to AI Generation",
+      "ok": false,
+      "extra": {
+        "visibleLoadedHistoryImages": 0,
+        "matchedHistoryImages": 0,
+        "matches": []
+      },
+      "at": "2026-06-15T08:01:00.907Z"
+    },
+    {
+      "name": "cleanup custom text LLM via API",
+      "ok": true,
+      "extra": {
+        "status": 200,
+        "id": "visible_llm_1781510424610"
+      },
+      "at": "2026-06-15T08:01:00.913Z"
+    },
+    {
+      "name": "cleanup custom image provider via API",
+      "ok": true,
+      "extra": {
+        "status": 200,
+        "id": "img_1781510423474_g85j",
+        "name": "visible-img-1781510421120"
+      },
+      "at": "2026-06-15T08:01:00.923Z"
+    },
+    {
+      "name": "cleanup key file from Windows test directory",
+      "ok": true,
+      "extra": {
+        "path": "C:\\eplatform-test\\real-llm.key"
+      },
+      "at": "2026-06-15T08:01:01.017Z"
+    }
+  ],
+  "evidence": {
+    "screenshots": [
+      "C:\\eplatform-test\\screenshots\\visible-settings-before-image-provider-2026-06-15T08-00-16-520Z.png",
+      "C:\\eplatform-test\\screenshots\\visible-settings-after-image-provider-2026-06-15T08-00-16-520Z.png",
+      "C:\\eplatform-test\\screenshots\\visible-natural-before-generate-2026-06-15T08-00-16-520Z.png",
+      "C:\\eplatform-test\\screenshots\\visible-natural-after-generate-2026-06-15T08-00-16-520Z.png",
+      "C:\\eplatform-test\\screenshots\\visible-natural-after-return-2026-06-15T08-00-16-520Z.png"
+    ],
+    "visibleImages": [],
+    "visibleImageMatches": [],
+    "historyImageMatches": [],
+    "selectedTiles": 0,
+    "historyImages": 0,
+    "generatedImages": [],
+    "apiRows": 0,
+    "matchedApiRows": 0,
+    "visibleErrors": [],
+    "generateRequests": [
+      {
+        "phase": "request",
+        "method": "POST",
+        "url": "http://127.0.0.1:3001/api/images/generate-from-natural-language",
+        "at": "2026-06-15T08:00:29.681Z"
+      },
+      {
+        "phase": "response",
+        "status": 500,
+        "url": "http://127.0.0.1:3001/api/images/generate-from-natural-language",
+        "body": "{\"success\":false,\"error\":\"图片生成 provider 请求失败 (503): [openclawroot.com] 无法连接，请切换网络后稍后重试或尝试切换模型\",\"stage\":\"图片生成 provider 请求\",\"upstreamStatus\":503}",
+        "at": "2026-06-15T08:00:55.058Z"
+      }
+    ]
+  },
+  "created": {
+    "imageProviderName": "visible-img-1781510421120",
+    "llmId": "visible_llm_1781510424610",
+    "llmName": "visible-llm-1781510424610"
+  },
+  "pass": 15,
+  "fail": 6,
+  "finishedAt": "2026-06-15T08:01:01.018Z"
+}

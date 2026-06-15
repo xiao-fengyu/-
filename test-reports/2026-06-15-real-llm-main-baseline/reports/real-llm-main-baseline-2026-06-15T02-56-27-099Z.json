@@ -1,0 +1,191 @@
+{
+  "startedAt": "2026-06-15T02:56:27.100Z",
+  "exePath": "C:\\Program Files\\e-platform\\e-platform.exe",
+  "apiBase": "http://127.0.0.1:3001",
+  "appDataDir": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data",
+  "imageDir": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images",
+  "artifact": "GitHub Actions run 27519185725 artifact 7627435077 installed 2026-06-15 09:47:24",
+  "checks": [
+    {
+      "name": "key file loaded without logging secret",
+      "ok": true,
+      "extra": {
+        "baseUrl": "https://openclawroot.com/v1",
+        "textModel": "MiniMax-M3-highspeed",
+        "imageModel": "gpt-image-2",
+        "keyLength": 51
+      },
+      "at": "2026-06-15T02:56:27.102Z"
+    },
+    {
+      "name": "installed Electron UI launched",
+      "ok": true,
+      "extra": {},
+      "at": "2026-06-15T02:56:31.064Z"
+    },
+    {
+      "name": "backend health ready",
+      "ok": true,
+      "extra": {},
+      "at": "2026-06-15T02:56:31.077Z"
+    },
+    {
+      "name": "cleanup stale baseline text LLMs before run",
+      "ok": true,
+      "extra": {
+        "count": 1
+      },
+      "at": "2026-06-15T02:56:31.088Z"
+    },
+    {
+      "name": "UI added custom image provider in Settings",
+      "ok": true,
+      "extra": {
+        "name": "baseline-img-1781492195558",
+        "visibleMatches": 1
+      },
+      "at": "2026-06-15T02:56:38.923Z"
+    },
+    {
+      "name": "API prepared custom text LLM for UI flow",
+      "ok": true,
+      "extra": {
+        "status": 200,
+        "id": "baseline_llm_1781492199036",
+        "name": "baseline-llm-1781492199036",
+        "model": "MiniMax-M3-highspeed"
+      },
+      "at": "2026-06-15T02:56:39.043Z"
+    },
+    {
+      "name": "image provider selected in UI",
+      "ok": true,
+      "extra": {
+        "name": "baseline-img-1781492195558"
+      },
+      "at": "2026-06-15T02:56:44.004Z"
+    },
+    {
+      "name": "image model available after provider selection",
+      "ok": true,
+      "extra": {
+        "model": "gpt-image-2"
+      },
+      "at": "2026-06-15T02:56:44.009Z"
+    },
+    {
+      "name": "UI natural language generation completed",
+      "ok": true,
+      "extra": {
+        "successTextCount": 0,
+        "resultTiles": 2
+      },
+      "at": "2026-06-15T02:57:47.134Z"
+    },
+    {
+      "name": "script verified generated image files",
+      "ok": true,
+      "extra": {
+        "count": 2,
+        "images": [
+          {
+            "file": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\d07e657271ddfa31.png",
+            "bytes": 1354058,
+            "format": "png",
+            "width": 1402,
+            "height": 1122
+          },
+          {
+            "file": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\de9fedef599e8450.png",
+            "bytes": 1351880,
+            "format": "png",
+            "width": 1402,
+            "height": 1122
+          }
+        ]
+      },
+      "at": "2026-06-15T02:57:47.139Z"
+    },
+    {
+      "name": "script verified image dimensions and bytes",
+      "ok": true,
+      "extra": {
+        "images": [
+          {
+            "file": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\d07e657271ddfa31.png",
+            "bytes": 1354058,
+            "format": "png",
+            "width": 1402,
+            "height": 1122
+          },
+          {
+            "file": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\de9fedef599e8450.png",
+            "bytes": 1351880,
+            "format": "png",
+            "width": 1402,
+            "height": 1122
+          }
+        ]
+      },
+      "at": "2026-06-15T02:57:47.140Z"
+    },
+    {
+      "name": "script verified generated images visible via API",
+      "ok": true,
+      "extra": {
+        "apiRows": 2,
+        "matchedRows": 2
+      },
+      "at": "2026-06-15T02:57:47.149Z"
+    },
+    {
+      "name": "cleanup custom text LLM via API",
+      "ok": true,
+      "extra": {
+        "status": 200,
+        "id": "baseline_llm_1781492199036"
+      },
+      "at": "2026-06-15T02:57:47.152Z"
+    },
+    {
+      "name": "cleanup key file from Windows test directory",
+      "ok": true,
+      "extra": {
+        "path": "C:\\eplatform-test\\real-llm.key"
+      },
+      "at": "2026-06-15T02:57:47.247Z"
+    }
+  ],
+  "evidence": {
+    "screenshots": [
+      "C:\\eplatform-test\\screenshots\\settings-before-image-provider-2026-06-15T02-56-27-099Z.png",
+      "C:\\eplatform-test\\screenshots\\settings-after-image-provider-2026-06-15T02-56-27-099Z.png",
+      "C:\\eplatform-test\\screenshots\\natural-before-generate-2026-06-15T02-56-27-099Z.png",
+      "C:\\eplatform-test\\screenshots\\natural-after-generate-2026-06-15T02-56-27-099Z.png"
+    ],
+    "generatedImages": [
+      {
+        "file": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\d07e657271ddfa31.png",
+        "bytes": 1354058,
+        "format": "png",
+        "width": 1402,
+        "height": 1122
+      },
+      {
+        "file": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\de9fedef599e8450.png",
+        "bytes": 1351880,
+        "format": "png",
+        "width": 1402,
+        "height": 1122
+      }
+    ]
+  },
+  "created": {
+    "imageProviderName": "baseline-img-1781492195558",
+    "llmId": "baseline_llm_1781492199036",
+    "llmName": "baseline-llm-1781492199036"
+  },
+  "pass": 14,
+  "fail": 0,
+  "finishedAt": "2026-06-15T02:57:47.247Z"
+}
