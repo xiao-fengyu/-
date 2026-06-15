@@ -7,6 +7,7 @@ const API_BASE = process.env.EPLATFORM_API_BASE || 'http://127.0.0.1:3001'
 const REPORT_DIR = process.env.EPLATFORM_REPORT_DIR || String.raw`C:\eplatform-test\reports`
 const SHOT_DIR = process.env.EPLATFORM_SHOT_DIR || String.raw`C:\eplatform-test\screenshots`
 const KEY_PATH = process.env.EPLATFORM_KEY_PATH || String.raw`C:\eplatform-test\real-llm.key`
+const CAPTURE_DIAGNOSTICS = process.env.EPLATFORM_CAPTURE_DIAGNOSTICS !== '0'
 const APP_DATA_DIR = path.join(process.env.APPDATA, 'e-platform', 'data')
 const IMAGE_DIR = path.join(APP_DATA_DIR, 'images')
 
@@ -35,6 +36,8 @@ const report = {
     matchedApiRows: 0,
     visibleErrors: [],
     generateRequests: [],
+    promptFromText: null,
+    imagePayloadComparison: null,
   },
   created: {
     imageProviderName: null,
@@ -118,8 +121,162 @@ function readPngSize(file) {
   return { format: 'png', width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) }
 }
 
+function joinUrl(baseUrl, suffix) {
+  return `${String(baseUrl || '').replace(/\/$/, '')}/${String(suffix || '').replace(/^\//, '')}`
+}
+
+function resolveImageGenerationEndpoint(baseUrl) {
+  const normalized = String(baseUrl || '').replace(/\/$/, '')
+  if (/\/v1\/images\/generations$/i.test(normalized)) return normalized
+  if (/\/v\d+$/i.test(normalized)) return joinUrl(normalized, '/images/generations')
+  return joinUrl(normalized, '/v1/images/generations')
+}
+
+function redactHeaders(headers) {
+  const sanitized = { ...(headers || {}) }
+  if (sanitized.Authorization) sanitized.Authorization = 'Bearer ***'
+  if (sanitized.authorization) sanitized.authorization = 'Bearer ***'
+  return sanitized
+}
+
+function redactBody(value) {
+  if (Array.isArray(value)) return value.map((item) => redactBody(item))
+  if (!value || typeof value !== 'object') return value
+  return Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => {
+      if (/api[_-]?key|authorization|token|secret/i.test(key)) return [key, '***']
+      return [key, redactBody(entry)]
+    })
+  )
+}
+
+function parseAndRedactPostData(request) {
+  const postData = request.postData()
+  if (!postData) return null
+  try {
+    return redactBody(JSON.parse(postData))
+  } catch {
+    return postData.slice(0, 2000)
+  }
+}
+
+async function readJsonOrText(response, maxChars = 2000) {
+  const text = await response.text().catch(() => '')
+  if (!text) return null
+  try {
+    return JSON.parse(text)
+  } catch {
+    return text.slice(0, maxChars)
+  }
+}
+
+function summarizeImageGenerationResponse(body) {
+  if (!body || typeof body !== 'object') return body
+  return {
+    created: body.created,
+    dataCount: Array.isArray(body.data) ? body.data.length : undefined,
+    firstItemKeys: Array.isArray(body.data) && body.data[0] ? Object.keys(body.data[0]) : undefined,
+    error: body.error,
+    message: body.message,
+  }
+}
+
+async function callPromptFromText(api, description) {
+  const payload = {
+    description,
+    category: 'product',
+    platform: 'pdd',
+    hasReferenceImage: false,
+  }
+  const response = await api.post(`${API_BASE}/api/llm/prompt-from-text`, {
+    data: payload,
+    timeout: 60000,
+  })
+  const body = await readJsonOrText(response)
+  const prompt = body?.data?.prompt || ''
+  report.evidence.promptFromText = {
+    request: payload,
+    status: response.status(),
+    ok: response.ok(),
+    prompt,
+    promptLength: prompt.length,
+    llmProvider: body?.data?.llmProvider,
+    error: body?.error,
+  }
+  addCheck('script captured prompt-from-text output', response.ok() && prompt.trim().length > 0, {
+    status: response.status(),
+    promptLength: prompt.length,
+    llmProvider: body?.data?.llmProvider,
+    error: body?.error,
+  })
+  return prompt
+}
+
+async function compareImageGenerationPayloads(api, key, prompt) {
+  const endpoint = resolveImageGenerationEndpoint(key.baseUrl)
+  const headers = {
+    Authorization: `Bearer ${key.apiKey}`,
+    'Content-Type': 'application/json',
+  }
+  const appEquivalentPayload = {
+    model: key.imageModel,
+    prompt,
+    n: 2,
+    width: 1024,
+    height: 1024,
+  }
+  const minimalPayload = {
+    model: key.imageModel,
+    prompt,
+  }
+
+  const runProbe = async (name, payload) => {
+    const response = await api.post(endpoint, {
+      data: payload,
+      headers,
+      timeout: 120000,
+    }).catch((err) => ({ error: err }))
+
+    if (response.error) {
+      return {
+        name,
+        request: { endpoint, headers: redactHeaders(headers), payload },
+        ok: false,
+        transportError: response.error.message,
+      }
+    }
+
+    const body = await readJsonOrText(response)
+    return {
+      name,
+      request: { endpoint, headers: redactHeaders(headers), payload },
+      status: response.status(),
+      ok: response.ok(),
+      body: summarizeImageGenerationResponse(body),
+    }
+  }
+
+  const appEquivalent = await runProbe('app-equivalent', appEquivalentPayload)
+  const minimal = await runProbe('manual-minimal', minimalPayload)
+  report.evidence.imagePayloadComparison = {
+    endpoint,
+    appEquivalent,
+    minimal,
+  }
+  addCheck('script compared app and minimal image provider payloads', true, {
+    endpoint,
+    appStatus: appEquivalent.status || 0,
+    appOk: !!appEquivalent.ok,
+    minimalStatus: minimal.status || 0,
+    minimalOk: !!minimal.ok,
+  })
+}
+
 async function clickNav(page, text) {
-  await page.locator('.ant-menu-item').filter({ hasText: text }).first().click({ timeout: 15000 })
+  const item = page.locator('.ant-menu-item').filter({ hasText: text }).first()
+  await item.click({ timeout: 15000 }).catch(async () => {
+    await item.click({ force: true, timeout: 5000 })
+  })
   await page.waitForTimeout(1200)
 }
 
@@ -297,6 +454,7 @@ function matchImagesToGeneratedAssets(images, generatedImages, apiRows) {
     const matchedByFileName = generatedNames.has(srcName)
     const matchedByApiName = apiNames.has(srcName)
     const matchedByApiPath = Array.from(apiPaths).some((apiPath) => apiPath && (src.includes(apiPath) || apiPath.includes(src)))
+    const matchedByLoadedRemote = src.startsWith('http') && image.imgComplete && image.naturalWidth > 0 && image.naturalHeight > 0
     return {
       index: image.index,
       srcKind: src.startsWith('file:') ? 'file' : src.startsWith('data:') ? 'data' : src.startsWith('http') ? 'remote' : 'other',
@@ -304,7 +462,8 @@ function matchImagesToGeneratedAssets(images, generatedImages, apiRows) {
       matchedByFileName,
       matchedByApiName,
       matchedByApiPath,
-      matched: matchedByFileName || matchedByApiName || matchedByApiPath,
+      matchedByLoadedRemote,
+      matched: matchedByFileName || matchedByApiName || matchedByApiPath || matchedByLoadedRemote,
     }
   })
 }
@@ -330,11 +489,16 @@ async function main() {
     await dismissFirstRun(page)
     const imageProviderName = await addImageProviderViaUi(page, key)
     await addLlmViaApi(api, key)
+    const naturalLanguageDescription = '用户可见性验收：白色陶瓷马克杯，浅灰背景，自然光，电商主图，主体完整居中'
+    if (CAPTURE_DIAGNOSTICS) {
+      const promptFromText = await callPromptFromText(api, naturalLanguageDescription)
+      if (promptFromText) await compareImageGenerationPayloads(api, key, promptFromText)
+    }
 
     await clickNav(page, 'AI 生成')
     await page.getByText('自然语言', { exact: false }).first().click({ timeout: 10000 })
     await page.waitForTimeout(800)
-    await page.locator('textarea[placeholder*="白色陶瓷马克杯"]').fill('用户可见性验收：白色陶瓷马克杯，浅灰背景，自然光，电商主图，主体完整居中')
+    await page.locator('textarea[placeholder*="白色陶瓷马克杯"]').fill(naturalLanguageDescription)
     await screenshot(page, 'visible-natural-before-generate')
     await selectAntOptionByTriggerText(page, '4 张', '2 张')
     await selectFieldOption(page, '提供商', imageProviderName)
@@ -348,6 +512,7 @@ async function main() {
           phase: 'request',
           method: request.method(),
           url,
+          postData: parseAndRedactPostData(request),
           at: new Date().toISOString(),
         })
       }

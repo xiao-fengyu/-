@@ -31,6 +31,10 @@ const DATA_DIR = process.env.DB_DIR
   : path.join(process.cwd(), 'data/images')
 const processor = new ImageProcessor(DATA_DIR)
 
+function imageUrlFromLocalPath(localPath: string): string {
+  return `/images/${path.basename(localPath)}`
+}
+
 function extractErrorMessage(err: any): string {
   const upstreamMessage = err.response?.data?.error?.message || err.response?.data?.message || err.response?.data?.error
   if (typeof upstreamMessage === 'string' && upstreamMessage.trim()) return upstreamMessage.trim()
@@ -159,12 +163,14 @@ router.post('/generate', async (req, res) => {
       if (!imageUrl) continue
 
       let localPath: string
+      let displayUrl: string
 
       if (img.base64) {
         // base64 数据直接保存
         const hash = crypto.randomBytes(8).toString('hex')
         localPath = path.join(DATA_DIR, `${hash}.png`)
         fs.writeFileSync(localPath, Buffer.from(img.base64, 'base64'))
+        displayUrl = imageUrlFromLocalPath(localPath)
       } else {
         // 从 URL 下载
         const dl = await axios.get(imageUrl, {
@@ -175,6 +181,7 @@ router.post('/generate', async (req, res) => {
         const ext = imageUrl.includes('.png') ? 'png' : 'jpg'
         localPath = path.join(DATA_DIR, `${hash}.${ext}`)
         fs.writeFileSync(localPath, dl.data)
+        displayUrl = imageUrl
       }
 
       const stats = fs.statSync(localPath)
@@ -182,7 +189,7 @@ router.post('/generate', async (req, res) => {
 
       results.push({
         localPath,
-        url: imageUrl,
+        url: displayUrl,
         width: metadata.width,
         height: metadata.height,
         fileSize: stats.size,
@@ -318,11 +325,13 @@ router.post('/generate-from-image', uploadImage.single('referenceImage'), async 
       if (!imageUrl) continue
 
       let localPath: string
+      let displayUrl: string
 
       if (img.base64) {
         const hash = crypto.randomBytes(8).toString('hex')
         localPath = path.join(DATA_DIR, `${hash}.png`)
         fs.writeFileSync(localPath, Buffer.from(img.base64, 'base64'))
+        displayUrl = imageUrlFromLocalPath(localPath)
       } else {
         const dl = await axios.get(imageUrl, {
           responseType: 'arraybuffer',
@@ -332,6 +341,7 @@ router.post('/generate-from-image', uploadImage.single('referenceImage'), async 
         const ext = imageUrl.includes('.png') ? 'png' : 'jpg'
         localPath = path.join(DATA_DIR, `${hash}.${ext}`)
         fs.writeFileSync(localPath, dl.data)
+        displayUrl = imageUrl
       }
 
       const stats = fs.statSync(localPath)
@@ -339,7 +349,7 @@ router.post('/generate-from-image', uploadImage.single('referenceImage'), async 
 
       results.push({
         localPath,
-        url: imageUrl,
+        url: displayUrl,
         width: metadata.width,
         height: metadata.height,
         fileSize: stats.size,
@@ -670,10 +680,12 @@ router.post(
           if (!imageUrl) continue
 
           let localPath: string
+          let displayUrl: string
           if (img.base64) {
             const hash = crypto.randomBytes(8).toString('hex')
             localPath = path.join(DATA_DIR, `${hash}.png`)
             fs.writeFileSync(localPath, Buffer.from(img.base64, 'base64'))
+            displayUrl = imageUrlFromLocalPath(localPath)
           } else {
             const dl = await axios.get(imageUrl, {
               responseType: 'arraybuffer',
@@ -683,13 +695,14 @@ router.post(
             const ext = imageUrl.includes('.png') ? 'png' : 'jpg'
             localPath = path.join(DATA_DIR, `${hash}.${ext}`)
             fs.writeFileSync(localPath, dl.data)
+            displayUrl = imageUrl
           }
 
           const stats = fs.statSync(localPath)
           const metadata = await processor.checkCompliance(localPath)
           results.push({
             localPath,
-            url: imageUrl!,
+            url: displayUrl,
             width: metadata.width,
             height: metadata.height,
             fileSize: stats.size,

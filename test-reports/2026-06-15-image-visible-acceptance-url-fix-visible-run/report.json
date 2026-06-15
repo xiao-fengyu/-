@@ -1,0 +1,475 @@
+{
+  "startedAt": "2026-06-15T12:36:16.656Z",
+  "acceptanceType": "user-visible",
+  "exePath": "C:\\Program Files\\e-platform\\e-platform.exe",
+  "apiBase": "http://127.0.0.1:3001",
+  "appDataDir": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data",
+  "imageDir": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images",
+  "checks": [
+    {
+      "name": "installed Electron executable exists",
+      "ok": true,
+      "extra": {
+        "exePath": "C:\\Program Files\\e-platform\\e-platform.exe"
+      },
+      "at": "2026-06-15T12:36:16.658Z"
+    },
+    {
+      "name": "real LLM/image key file exists",
+      "ok": true,
+      "extra": {
+        "keyPath": "C:\\eplatform-test\\real-llm.key"
+      },
+      "at": "2026-06-15T12:36:16.659Z"
+    },
+    {
+      "name": "key file loaded without logging secret",
+      "ok": true,
+      "extra": {
+        "baseUrl": "https://openclawroot.com/v1",
+        "textModel": "qwen3.6-plus",
+        "imageModel": "gpt-image-2",
+        "keyLength": 51
+      },
+      "at": "2026-06-15T12:36:16.660Z"
+    },
+    {
+      "name": "installed Electron UI launched",
+      "ok": true,
+      "extra": {},
+      "at": "2026-06-15T12:36:20.700Z"
+    },
+    {
+      "name": "backend health ready",
+      "ok": true,
+      "extra": {},
+      "at": "2026-06-15T12:36:20.715Z"
+    },
+    {
+      "name": "UI added custom image provider in Settings",
+      "ok": true,
+      "extra": {
+        "name": "visible-img-1781526984853",
+        "visibleMatches": 1
+      },
+      "at": "2026-06-15T12:36:28.280Z"
+    },
+    {
+      "name": "API prepared custom text LLM for UI flow",
+      "ok": true,
+      "extra": {
+        "status": 200,
+        "id": "visible_llm_1781526988431",
+        "name": "visible-llm-1781526988431",
+        "model": "qwen3.6-plus"
+      },
+      "at": "2026-06-15T12:36:28.442Z"
+    },
+    {
+      "name": "image provider selected in UI before generation",
+      "ok": true,
+      "extra": {
+        "name": "visible-img-1781526984853"
+      },
+      "at": "2026-06-15T12:36:33.490Z"
+    },
+    {
+      "name": "UI sent image generation API request",
+      "ok": true,
+      "extra": {
+        "requests": [
+          {
+            "phase": "request",
+            "method": "POST",
+            "url": "http://127.0.0.1:3001/api/images/generate-from-natural-language",
+            "postData": {
+              "description": "用户可见性验收：白色陶瓷马克杯，浅灰背景，自然光，电商主图，主体完整居中",
+              "providerConfig": {
+                "id": "img_1781526987218_6ibd",
+                "name": "visible-img-1781526984853",
+                "type": "api",
+                "endpoint": "https://openclawroot.com/v1",
+                "apiKey": "***",
+                "model": "gpt-image-2",
+                "maxImages": 2,
+                "defaultParams": {},
+                "isDefault": false
+              },
+              "llmProviderId": "visible_llm_1781526988431",
+              "count": 2,
+              "width": 1024,
+              "height": 1024
+            },
+            "at": "2026-06-15T12:36:33.552Z"
+          },
+          {
+            "phase": "response",
+            "status": 200,
+            "url": "http://127.0.0.1:3001/api/images/generate-from-natural-language",
+            "body": "{\"success\":true,\"data\":{\"mode\":\"text-to-image\",\"originalDescription\":\"用户可见性验收：白色陶瓷马克杯，浅灰背景，自然光，电商主图，主体完整居中\",\"prompt\":\"A professional e-commerce product photograph of a pristine white ceramic mug, perfectly centered in the frame with the full product clearly visible. The mug features a smooth, glossy white ceramic finish. Shot against a seamless light gray studio background. Illuminated by soft, diffused natural daylight creating gentle, realistic shadows. Eye-level camera angle, 50mm lens perspective, commercial product photography style. High-end aesthetic, ultra-detailed, 4k resolution, sharp focus, photorealistic, clean composition optimized for an online store main image.\",\"attributes\":{\"subject\":\"White ceramic mug\",\"style\":\"E-commerce commercial product photography, high-end aesthetic\",\"background\":\"Seamless light gray studio backdrop\",\"lighting\":\"Soft diffused natural daylight with gentle realistic shadows\",\"cameraAngle\":\"Eye-level shot, 50mm lens perspective, perfectly centered composition\",\"extra\":[\"4k resolution\",\"ultra-detailed\",\"sharp focus\",\"photorealistic\",\"clean layout\",\"studio quality\"]},\"llmProvider\":{\"id\":\"visible_llm_1781526988431\",\"name\":\"visible-llm-178152698843",
+            "at": "2026-06-15T12:38:24.388Z"
+          }
+        ]
+      },
+      "at": "2026-06-15T12:38:27.512Z"
+    },
+    {
+      "name": "UI generation loading settled",
+      "ok": true,
+      "extra": {
+        "hasGeneratingText": false,
+        "resultTiles": 3,
+        "historyTiles": 0
+      },
+      "at": "2026-06-15T12:38:27.512Z"
+    },
+    {
+      "name": "no visible UI error after generation",
+      "ok": true,
+      "extra": {
+        "visibleErrors": []
+      },
+      "at": "2026-06-15T12:38:27.516Z"
+    },
+    {
+      "name": "current result grid has requested visible loaded images",
+      "ok": true,
+      "extra": {
+        "visibleLoadedImages": 3,
+        "totalTiles": 3,
+        "images": [
+          {
+            "index": 0,
+            "naturalWidth": 1324,
+            "naturalHeight": 1188,
+            "renderedWidth": 145,
+            "renderedHeight": 145
+          },
+          {
+            "index": 1,
+            "naturalWidth": 1254,
+            "naturalHeight": 1254,
+            "renderedWidth": 145,
+            "renderedHeight": 145
+          },
+          {
+            "index": 2,
+            "naturalWidth": 1254,
+            "naturalHeight": 1254,
+            "renderedWidth": 145,
+            "renderedHeight": 145
+          }
+        ]
+      },
+      "at": "2026-06-15T12:38:27.521Z"
+    },
+    {
+      "name": "user can select a generated result tile",
+      "ok": true,
+      "extra": {
+        "selectedTiles": 1
+      },
+      "at": "2026-06-15T12:38:28.240Z"
+    },
+    {
+      "name": "script verified generated image files",
+      "ok": true,
+      "extra": {
+        "count": 3,
+        "images": [
+          {
+            "file": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\33780cd4705dcd96.png",
+            "bytes": 1491907,
+            "format": "png",
+            "width": 1254,
+            "height": 1254
+          },
+          {
+            "file": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\9237aa22b595f77a.png",
+            "bytes": 1238738,
+            "format": "png",
+            "width": 1324,
+            "height": 1188
+          },
+          {
+            "file": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\f8c766ca20ec2a73.png",
+            "bytes": 1302442,
+            "format": "png",
+            "width": 1254,
+            "height": 1254
+          }
+        ]
+      },
+      "at": "2026-06-15T12:38:28.245Z"
+    },
+    {
+      "name": "script verified image dimensions and bytes",
+      "ok": true,
+      "extra": {
+        "images": [
+          {
+            "file": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\33780cd4705dcd96.png",
+            "bytes": 1491907,
+            "format": "png",
+            "width": 1254,
+            "height": 1254
+          },
+          {
+            "file": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\9237aa22b595f77a.png",
+            "bytes": 1238738,
+            "format": "png",
+            "width": 1324,
+            "height": 1188
+          },
+          {
+            "file": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\f8c766ca20ec2a73.png",
+            "bytes": 1302442,
+            "format": "png",
+            "width": 1254,
+            "height": 1254
+          }
+        ]
+      },
+      "at": "2026-06-15T12:38:28.245Z"
+    },
+    {
+      "name": "script verified generated images visible via API",
+      "ok": true,
+      "extra": {
+        "apiRows": 4,
+        "matchedRows": 3
+      },
+      "at": "2026-06-15T12:38:28.254Z"
+    },
+    {
+      "name": "visible UI images match generated files or API rows",
+      "ok": false,
+      "extra": {
+        "matchedVisibleImages": 0,
+        "matches": [
+          {
+            "index": 0,
+            "srcKind": "remote",
+            "srcName": "1781527073_d8b88655d48e6b3f63c5dbabde04f460.png",
+            "matchedByFileName": false,
+            "matchedByApiName": false,
+            "matchedByApiPath": false,
+            "matched": false
+          },
+          {
+            "index": 1,
+            "srcKind": "remote",
+            "srcName": "1781527073_3d5694adade1b03bcad9184b955da701.png",
+            "matchedByFileName": false,
+            "matchedByApiName": false,
+            "matchedByApiPath": false,
+            "matched": false
+          },
+          {
+            "index": 2,
+            "srcKind": "remote",
+            "srcName": "1781527104_273b033fa0e03d6b1ab2da882fb2e6cd.png",
+            "matchedByFileName": false,
+            "matchedByApiName": false,
+            "matchedByApiPath": false,
+            "matched": false
+          }
+        ]
+      },
+      "at": "2026-06-15T12:38:28.255Z"
+    },
+    {
+      "name": "cleanup custom text LLM via API",
+      "ok": true,
+      "extra": {
+        "status": 200,
+        "id": "visible_llm_1781526988431"
+      },
+      "at": "2026-06-15T12:38:43.269Z"
+    },
+    {
+      "name": "cleanup custom image provider via API",
+      "ok": true,
+      "extra": {
+        "status": 200,
+        "id": "img_1781526987218_6ibd",
+        "name": "visible-img-1781526984853"
+      },
+      "at": "2026-06-15T12:38:43.278Z"
+    },
+    {
+      "name": "runner uncaught error",
+      "ok": false,
+      "extra": {
+        "message": "locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.ant-menu-item').filter({ hasText: '工作台' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <li tabindex=\"-1\" role=\"menuitem\" class=\"ant-menu-item\" aria-describedby=\"_r_1_\" data-menu-id=\"rc-menu-uuid-03156-1-/dashboard\">…</li>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div tabindex=\"-1\" class=\"ant-image-preview-wrap\">…</div> from <div>…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div tabindex=\"-1\" class=\"ant-image-preview-wrap\">…</div> from <div>…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    29 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <div tabindex=\"-1\" class=\"ant-image-preview-wrap\">…</div> from <div>…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n",
+        "stack": "locator.click: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.ant-menu-item').filter({ hasText: '工作台' }).first()\u001b[22m\n\u001b[2m    - locator resolved to <li tabindex=\"-1\" role=\"menuitem\" class=\"ant-menu-item\" aria-describedby=\"_r_1_\" data-menu-id=\"rc-menu-uuid-03156-1-/dashboard\">…</li>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div tabindex=\"-1\" class=\"ant-image-preview-wrap\">…</div> from <div>…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <div tabindex=\"-1\" class=\"ant-image-preview-wrap\">…</div> from <div>…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    29 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <div tabindex=\"-1\" class=\"ant-image-preview-wrap\">…</div> from <div>…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\n    at clickNav (C:\\eplatform-test\\windows-image"
+      },
+      "at": "2026-06-15T12:38:43.370Z"
+    },
+    {
+      "name": "cleanup key file from Windows test directory",
+      "ok": true,
+      "extra": {
+        "path": "C:\\eplatform-test\\real-llm.key"
+      },
+      "at": "2026-06-15T12:38:43.371Z"
+    }
+  ],
+  "evidence": {
+    "screenshots": [
+      "C:\\eplatform-test\\screenshots\\visible-settings-before-image-provider-2026-06-15T12-36-16-655Z.png",
+      "C:\\eplatform-test\\screenshots\\visible-settings-after-image-provider-2026-06-15T12-36-16-655Z.png",
+      "C:\\eplatform-test\\screenshots\\visible-natural-before-generate-2026-06-15T12-36-16-655Z.png",
+      "C:\\eplatform-test\\screenshots\\visible-natural-after-generate-2026-06-15T12-36-16-655Z.png",
+      "C:\\eplatform-test\\screenshots\\visible-natural-after-select-2026-06-15T12-36-16-655Z.png"
+    ],
+    "visibleImages": [
+      {
+        "index": 0,
+        "tileVisible": true,
+        "tileWidth": 145,
+        "tileHeight": 145,
+        "selected": false,
+        "hasImage": true,
+        "imgVisible": true,
+        "imgComplete": true,
+        "naturalWidth": 1324,
+        "naturalHeight": 1188,
+        "renderedWidth": 145,
+        "renderedHeight": 145,
+        "src": "http://64.83.19.53:18080/images/2026/06/15/1781527073_d8b88655d48e6b3f63c5dbabde04f460.png"
+      },
+      {
+        "index": 1,
+        "tileVisible": true,
+        "tileWidth": 145,
+        "tileHeight": 145,
+        "selected": false,
+        "hasImage": true,
+        "imgVisible": true,
+        "imgComplete": true,
+        "naturalWidth": 1254,
+        "naturalHeight": 1254,
+        "renderedWidth": 145,
+        "renderedHeight": 145,
+        "src": "http://64.83.19.53:18080/images/2026/06/15/1781527073_3d5694adade1b03bcad9184b955da701.png"
+      },
+      {
+        "index": 2,
+        "tileVisible": true,
+        "tileWidth": 145,
+        "tileHeight": 145,
+        "selected": false,
+        "hasImage": true,
+        "imgVisible": true,
+        "imgComplete": true,
+        "naturalWidth": 1254,
+        "naturalHeight": 1254,
+        "renderedWidth": 145,
+        "renderedHeight": 145,
+        "src": "http://64.83.19.53:18080/images/2026/06/15/1781527104_273b033fa0e03d6b1ab2da882fb2e6cd.png"
+      }
+    ],
+    "visibleImageMatches": [
+      {
+        "index": 0,
+        "srcKind": "remote",
+        "srcName": "1781527073_d8b88655d48e6b3f63c5dbabde04f460.png",
+        "matchedByFileName": false,
+        "matchedByApiName": false,
+        "matchedByApiPath": false,
+        "matched": false
+      },
+      {
+        "index": 1,
+        "srcKind": "remote",
+        "srcName": "1781527073_3d5694adade1b03bcad9184b955da701.png",
+        "matchedByFileName": false,
+        "matchedByApiName": false,
+        "matchedByApiPath": false,
+        "matched": false
+      },
+      {
+        "index": 2,
+        "srcKind": "remote",
+        "srcName": "1781527104_273b033fa0e03d6b1ab2da882fb2e6cd.png",
+        "matchedByFileName": false,
+        "matchedByApiName": false,
+        "matchedByApiPath": false,
+        "matched": false
+      }
+    ],
+    "historyImageMatches": [],
+    "selectedTiles": 1,
+    "historyImages": 0,
+    "generatedImages": [
+      {
+        "file": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\33780cd4705dcd96.png",
+        "bytes": 1491907,
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      },
+      {
+        "file": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\9237aa22b595f77a.png",
+        "bytes": 1238738,
+        "format": "png",
+        "width": 1324,
+        "height": 1188
+      },
+      {
+        "file": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\f8c766ca20ec2a73.png",
+        "bytes": 1302442,
+        "format": "png",
+        "width": 1254,
+        "height": 1254
+      }
+    ],
+    "apiRows": 4,
+    "matchedApiRows": 3,
+    "visibleErrors": [],
+    "generateRequests": [
+      {
+        "phase": "request",
+        "method": "POST",
+        "url": "http://127.0.0.1:3001/api/images/generate-from-natural-language",
+        "postData": {
+          "description": "用户可见性验收：白色陶瓷马克杯，浅灰背景，自然光，电商主图，主体完整居中",
+          "providerConfig": {
+            "id": "img_1781526987218_6ibd",
+            "name": "visible-img-1781526984853",
+            "type": "api",
+            "endpoint": "https://openclawroot.com/v1",
+            "apiKey": "***",
+            "model": "gpt-image-2",
+            "maxImages": 2,
+            "defaultParams": {},
+            "isDefault": false
+          },
+          "llmProviderId": "visible_llm_1781526988431",
+          "count": 2,
+          "width": 1024,
+          "height": 1024
+        },
+        "at": "2026-06-15T12:36:33.552Z"
+      },
+      {
+        "phase": "response",
+        "status": 200,
+        "url": "http://127.0.0.1:3001/api/images/generate-from-natural-language",
+        "body": "{\"success\":true,\"data\":{\"mode\":\"text-to-image\",\"originalDescription\":\"用户可见性验收：白色陶瓷马克杯，浅灰背景，自然光，电商主图，主体完整居中\",\"prompt\":\"A professional e-commerce product photograph of a pristine white ceramic mug, perfectly centered in the frame with the full product clearly visible. The mug features a smooth, glossy white ceramic finish. Shot against a seamless light gray studio background. Illuminated by soft, diffused natural daylight creating gentle, realistic shadows. Eye-level camera angle, 50mm lens perspective, commercial product photography style. High-end aesthetic, ultra-detailed, 4k resolution, sharp focus, photorealistic, clean composition optimized for an online store main image.\",\"attributes\":{\"subject\":\"White ceramic mug\",\"style\":\"E-commerce commercial product photography, high-end aesthetic\",\"background\":\"Seamless light gray studio backdrop\",\"lighting\":\"Soft diffused natural daylight with gentle realistic shadows\",\"cameraAngle\":\"Eye-level shot, 50mm lens perspective, perfectly centered composition\",\"extra\":[\"4k resolution\",\"ultra-detailed\",\"sharp focus\",\"photorealistic\",\"clean layout\",\"studio quality\"]},\"llmProvider\":{\"id\":\"visible_llm_1781526988431\",\"name\":\"visible-llm-178152698843",
+        "at": "2026-06-15T12:38:24.388Z"
+      }
+    ],
+    "promptFromText": null,
+    "imagePayloadComparison": null
+  },
+  "created": {
+    "imageProviderName": "visible-img-1781526984853",
+    "llmId": "visible_llm_1781526988431",
+    "llmName": "visible-llm-1781526988431"
+  },
+  "pass": 19,
+  "fail": 2,
+  "finishedAt": "2026-06-15T12:38:43.371Z"
+}

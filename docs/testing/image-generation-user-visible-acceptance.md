@@ -24,7 +24,7 @@ An image-generation acceptance test must fail unless all of these are true:
 3. No visible error message appears during or after generation.
 4. The current result grid contains at least the requested number of `.ri` result tiles.
 5. Each result tile contains an `img` element that is visible, complete, and has non-zero rendered and natural dimensions.
-6. Each visible `img` resolves to a generated file or generated URL returned by the backend/API for this run.
+6. Each visible `img` resolves to a generated local file URL (for example `/images/<filename>`) or a generated remote provider URL returned by the backend/API for this run.
 7. At least one result tile can be clicked and enters selected state (`.ri.sel`).
 8. After navigating away from and back to AI Generation, generated images are visible in history (`.ht img`) or the current result remains visible by design.
 9. Script-side verification confirms generated files exist, have valid image headers, non-zero dimensions, and meaningful byte size.
@@ -41,6 +41,7 @@ A valid report must include:
 - Screenshot after selecting a generated result tile.
 - Screenshot after navigating away and back.
 - DOM evidence for visible result images: tile count, visible image count, rendered size, natural size, and `src` kind.
+- URL evidence for visible result images: local generated files and API rows should match by path/name; loaded remote provider URLs can pass when they are complete and have non-zero natural dimensions.
 - Script evidence for generated files: path, bytes, format, width, and height.
 - API evidence: row count and matched generated paths.
 - A clear verdict field: `acceptanceType` must be `user-visible`, not `backend-health`.
@@ -51,6 +52,7 @@ These must fail user-visible acceptance even if files were generated:
 
 - The report only checks `successTextCount > 0 || resultTiles > 0`.
 - Result tiles exist but contain blank, broken, or zero-size images.
+- The backend saves a base64 provider response to disk but returns the raw base64 string as `url`, causing the UI to render a broken `/image/<base64>` path.
 - Generated files exist, but the current UI session does not show them.
 - Images appear only in API/file system and not in the result grid or history.
 - An error toast appears after generation but files happen to be written.
