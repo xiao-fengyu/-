@@ -14,12 +14,6 @@ import {
   type GenerationOptions,
   type ImageToImageOptions,
 } from '../services/image-gen'
-import {
-  PROMPT_TEMPLATES,
-  renderPrompt,
-  getTemplatesByCategory,
-  getCategories,
-} from '../services/image-gen/templates'
 import { DatabaseService } from '../services/database'
 import { createLlmProvider, naturalLanguageToPrompt } from '../services/llm'
 
@@ -69,38 +63,6 @@ const uploadImage = multer({
 function getDb(): DatabaseService {
   return new DatabaseService()
 }
-
-// ============================================================
-// 模板相关
-// ============================================================
-
-/** 获取所有 Prompt 模板 */
-router.get('/templates', (_req, res) => {
-  res.json({
-    success: true,
-    data: {
-      templates: PROMPT_TEMPLATES,
-      categories: getCategories(),
-    },
-  })
-})
-
-/** 按分类获取模板 */
-router.get('/templates/category/:category', (req, res) => {
-  const templates = getTemplatesByCategory(req.params.category)
-  res.json({ success: true, data: { templates } })
-})
-
-/** 渲染模板 */
-router.post('/templates/render', (req, res) => {
-  try {
-    const { templateId, variables } = req.body
-    const prompt = renderPrompt(templateId, variables)
-    res.json({ success: true, data: { prompt } })
-  } catch (err: any) {
-    res.status(400).json({ success: false, error: err.message })
-  }
-})
 
 // ============================================================
 // 图片生成

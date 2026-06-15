@@ -109,18 +109,6 @@ export async function deleteImageProvider(id: string) {
   return res.data as { success: boolean; message?: string; error?: string }
 }
 
-/** 获取 Prompt 模板列表 */
-export async function fetchTemplates() {
-  const res = await api.get('/api/images/templates')
-  return res.data
-}
-
-/** 渲染模板 prompt */
-export async function renderTemplate(templateId: string, variables: Record<string, string>) {
-  const res = await api.post('/api/images/templates/render', { templateId, variables })
-  return res.data
-}
-
 /** 生成图片 */
 export async function generateImages(params: {
   providerConfig: Record<string, unknown>

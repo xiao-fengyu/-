@@ -1,64 +1,16 @@
-/* ImageGenerator 三栏布局样式 */
+/* ImageGenerator 双栏布局样式 */
 
 .image-generator {
   padding: 0;
   max-width: 100%;
 }
 
-/* 三栏主布局 */
+/* 主布局 */
 .gen-layout {
   display: grid;
-  grid-template-columns: 200px 1fr 320px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   min-height: calc(100vh - 100px);
   background: #ffffff;
-}
-
-/* 左栏：模板列表 */
-.gen-left {
-  background: #fafbfc;
-  border-right: 1px solid #e2e8f0;
-  padding: 12px;
-  overflow-y: auto;
-}
-
-.gen-left h5 {
-  font-size: 10px;
-  color: #94a3b8;
-  font-weight: 700;
-  margin-bottom: 8px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-.gen-left .tc {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 10px;
-  margin-bottom: 6px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.gen-left .tc:hover,
-.gen-left .tc.a {
-  border-color: #6366f1;
-  background: #eef2ff;
-}
-
-.gen-left .tc .ti {
-  font-size: 16px;
-  margin-bottom: 2px;
-}
-
-.gen-left .tc .tn {
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.gen-left .tc .td {
-  font-size: 10px;
-  color: #64748b;
 }
 
 /* 中间栏：编辑区 */

@@ -5,7 +5,7 @@ import {
   EditOutlined, DownloadOutlined, RobotOutlined
 } from '@ant-design/icons'
 import {
-  fetchTemplates, renderTemplate, generateImages, generateImagesFromImage,
+  generateImages, generateImagesFromImage,
   checkCompliance, fetchImages, deleteImage,
   fetchProviderModels,
   generateFromNaturalLanguage, fetchLlmProviders,
@@ -16,15 +16,6 @@ import { useAppStore } from '@/store'
 import './ImageGenerator.css'
 
 const { TextArea } = Input
-
-interface PromptTemplate {
-  id: string
-  name: string
-  category: string
-  prompt: string
-  description: string
-  tags: string[]
-}
 
 interface GeneratedImage {
   localPath: string
@@ -37,12 +28,6 @@ interface GeneratedImage {
   compliance?: { compliant: boolean; issues: string[] }
 }
 
-const TEMPLATE_ICONS: Record<string, string> = {
-  '服装鞋包': '👗', '数码家电': '📱', '家居日用': '🏠',
-  '食品生鲜': '🍎', '美妆个护': '💄', '运动户外': '🎮',
-  '文具办公': '📚', '自定义': '🔧',
-}
-
 function getErrorMessage(err: any, fallback: string) {
   return err.response?.data?.error || err.message || fallback
 }
@@ -52,9 +37,6 @@ export default function ImageGeneratorPage() {
 
   // 状态
   const [mode, setMode] = useState<'text2image' | 'image2image' | 'natural'>('text2image')
-  const [categories, setCategories] = useState<string[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<string>('')
-  const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null)
   const [subject, setSubject] = useState('')
   const [prompt, setPrompt] = useState('')
   const [selectedProvider, setSelectedProvider] = useState('')
@@ -76,14 +58,8 @@ export default function ImageGeneratorPage() {
   const [llmProviders, setLlmProviders] = useState<LlmProviderRecord[]>([])
   const [selectedLlmProviderId, setSelectedLlmProviderId] = useState<string>('')
 
-  // 加载模板和历史图片
+  // 加载历史图片和文本 LLM
   useEffect(() => {
-    fetchTemplates().then((res: any) => {
-      if (res.success) {
-        setCategories(res.data.categories)
-      }
-    }).catch(() => message.error('加载模板失败'))
-
     fetchImages().then((res: any) => {
       if (res.success) setHistoryImages(res.data.images)
     }).catch(() => {})
@@ -96,15 +72,6 @@ export default function ImageGeneratorPage() {
       }
     }).catch(() => {})
   }, [])
-
-  // 主体变化时重新渲染 prompt
-  useEffect(() => {
-    if (selectedTemplate && subject) {
-      renderTemplate(selectedTemplate.id, { subject }).then((res: any) => {
-        if (res.success) setPrompt(res.data.prompt)
-      }).catch(() => {})
-    }
-  }, [subject])
 
   // 选提供商后拉取可用模型列表
   useEffect(() => {
@@ -339,29 +306,6 @@ export default function ImageGeneratorPage() {
     <div className="image-generator">
       {/* 三栏布局 */}
       <div className="gen-layout">
-        {/* 左栏：模板列表 */}
-        <div className="gen-left">
-          <h5>电商模板</h5>
-          {categories.map(cat => (
-            <div
-              key={cat}
-              className={`tc ${selectedCategory === cat ? 'a' : ''}`}
-              onClick={() => setSelectedCategory(selectedCategory === cat ? '' : cat)}
-            >
-              <div className="ti">{TEMPLATE_ICONS[cat] || '📋'}</div>
-              <div className="tn">{cat}</div>
-            </div>
-          ))}
-          <div
-            className={`tc ${!selectedTemplate && !selectedCategory ? 'a' : ''}`}
-            onClick={() => { setSelectedCategory(''); setSelectedTemplate(null); }}
-          >
-            <div className="ti">🔧</div>
-            <div className="tn">自定义</div>
-            <div className="td">自由输入描述</div>
-          </div>
-        </div>
-
         {/* 中间栏：编辑区 */}
         <div className="gen-center">
           {/* 模式切换 */}
