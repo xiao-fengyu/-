@@ -3,6 +3,9 @@ import { useState, useEffect } from 'react'
 import { PlusOutlined, DeleteOutlined, StarOutlined, StarFilled } from '@ant-design/icons'
 import { useAppStore, type ProviderConfig, type PlatformCredential } from '../../store'
 import {
+  fetchImageProviders,
+  saveImageProvider,
+  deleteImageProvider,
   fetchLlmProviders,
   saveLlmProvider,
   deleteLlmProvider,
@@ -20,9 +23,24 @@ const platformOptions = [
 
 export default function SettingsPage() {
   const {
-    providers, addProvider, deleteProvider,
+    providers, setProviders,
     platformCredentials, addPlatformCredential, deletePlatformCredential,
   } = useAppStore()
+
+  const [providerLoading, setProviderLoading] = useState(false)
+
+  const loadImageProviders = async () => {
+    setProviderLoading(true)
+    try {
+      const res = await fetchImageProviders()
+      if (res.success) setProviders(res.data)
+      else message.error(res.error || '加载 AI 提供商失败')
+    } catch (err: any) {
+      message.error(err.message || '加载 AI 提供商失败')
+    } finally {
+      setProviderLoading(false)
+    }
+  }
 
   // 后端持久化的 LLM 列表（取代 zustand 内存 store）
   const [llmProviders, setLlmProviders] = useState<LlmProviderRecord[]>([])
@@ -42,6 +60,7 @@ export default function SettingsPage() {
   }
 
   useEffect(() => {
+    loadImageProviders()
     loadLlmProviders()
   }, [])
 
@@ -53,24 +72,44 @@ export default function SettingsPage() {
 
   // AI 提供商
   const handleAddProvider = async (values: any) => {
-    const maxImages = Number(values.maxImages || 4)
-    addProvider({
-      name: values.name,
-      type: 'api',
-      endpoint: values.endpoint,
-      apiKey: values.apiKey,
-      model: values.model,
-      maxImages,
-      isDefault: values.isDefault || false,
-    })
-    message.success('提供商已添加')
-    setProviderModalOpen(false)
-    providerForm.resetFields()
+    try {
+      const maxImages = Number(values.maxImages || 4)
+      const res = await saveImageProvider({
+        id: `img_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        name: values.name,
+        type: 'api',
+        endpoint: values.endpoint,
+        apiKey: values.apiKey,
+        model: values.model,
+        maxImages,
+        defaultParams: {},
+        isDefault: !!values.isDefault,
+      })
+      if (res.success) {
+        message.success('提供商已添加')
+        setProviderModalOpen(false)
+        providerForm.resetFields()
+        await loadImageProviders()
+      } else {
+        message.error(res.error || '添加失败')
+      }
+    } catch (err: any) {
+      message.error(err.message || '添加失败')
+    }
   }
 
-  const handleDeleteProvider = (id: string) => {
-    deleteProvider(id)
-    message.success('已删除')
+  const handleDeleteProvider = async (id: string) => {
+    try {
+      const res = await deleteImageProvider(id)
+      if (res.success) {
+        message.success('已删除')
+        await loadImageProviders()
+      } else {
+        message.error(res.error || '删除失败')
+      }
+    } catch (err: any) {
+      message.error(err.message || '删除失败')
+    }
   }
 
   // 平台凭据
@@ -269,6 +308,7 @@ export default function SettingsPage() {
                   <Table
                     columns={providerColumns}
                     dataSource={providers.map(p => ({ ...p, key: p.id }))}
+                    loading={providerLoading}
                     pagination={false}
                     locale={{ emptyText: '暂无提供商，请先添加自定义提供商' }}
                   />
@@ -389,7 +429,7 @@ export default function SettingsPage() {
             <Input placeholder="例如：我的自定义模型" />
           </Form.Item>
           <Form.Item name="endpoint" label="API 端点" rules={[{ required: true }]}>
-            <Input placeholder="https://..." />
+            <Input placeholder="https://.../v1 或 https://.../v1/images/generations" />
           </Form.Item>
           <Form.Item name="apiKey" label="API Key" rules={[{ required: true }]}>
             <Input.Password placeholder="sk-..." />

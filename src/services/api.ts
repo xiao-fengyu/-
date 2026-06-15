@@ -28,6 +28,87 @@ const api = axios.create({
 
 // ===== AI 图片生成 =====
 
+export interface ImageProviderRecord {
+  id: string
+  name: string
+  type: 'api' | 'local'
+  endpoint: string
+  apiKey: string
+  model: string
+  maxImages: number
+  defaultParams?: Record<string, unknown>
+  isDefault: boolean
+}
+
+interface ImageProviderApiRecord {
+  id: string
+  name: string
+  type?: 'api' | 'local'
+  endpoint: string
+  api_key: string
+  model?: string
+  max_images?: number
+  default_params?: string | Record<string, unknown> | null
+  is_default?: number | boolean
+}
+
+function parseProviderParams(value: ImageProviderApiRecord['default_params']) {
+  if (!value) return {}
+  if (typeof value === 'object') return value
+  try {
+    return JSON.parse(value)
+  } catch {
+    return {}
+  }
+}
+
+function normalizeImageProvider(record: ImageProviderApiRecord): ImageProviderRecord {
+  return {
+    id: String(record.id),
+    name: String(record.name),
+    type: record.type || 'api',
+    endpoint: String(record.endpoint),
+    apiKey: String(record.api_key || ''),
+    model: String(record.model || ''),
+    maxImages: Number(record.max_images || 4),
+    defaultParams: parseProviderParams(record.default_params),
+    isDefault: record.is_default === 1 || record.is_default === true,
+  }
+}
+
+/** 获取图片生成提供商 */
+export async function fetchImageProviders() {
+  const res = await api.get('/api/providers')
+  return {
+    ...res.data,
+    data: Array.isArray(res.data?.data)
+      ? res.data.data.map(normalizeImageProvider)
+      : [],
+  } as { success: boolean; data: ImageProviderRecord[]; error?: string }
+}
+
+/** 新建/更新图片生成提供商 */
+export async function saveImageProvider(provider: ImageProviderRecord) {
+  const res = await api.post('/api/providers', {
+    id: provider.id,
+    name: provider.name,
+    type: provider.type,
+    endpoint: provider.endpoint,
+    api_key: provider.apiKey,
+    model: provider.model,
+    max_images: provider.maxImages,
+    default_params: JSON.stringify(provider.defaultParams || {}),
+    is_default: provider.isDefault,
+  })
+  return res.data as { success: boolean; message?: string; error?: string }
+}
+
+/** 删除图片生成提供商 */
+export async function deleteImageProvider(id: string) {
+  const res = await api.delete(`/api/providers/${id}`)
+  return res.data as { success: boolean; message?: string; error?: string }
+}
+
 /** 获取 Prompt 模板列表 */
 export async function fetchTemplates() {
   const res = await api.get('/api/images/templates')
@@ -397,4 +478,3 @@ export async function generateFromNaturalLanguage(params: {
   const res = await api.post('/api/images/generate-from-natural-language', rest)
   return res.data
 }
-

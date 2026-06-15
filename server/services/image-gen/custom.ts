@@ -23,7 +23,7 @@ export class CustomProvider implements IImageProvider {
   constructor(config: ImageProviderConfig) {
     this.id = config.id
     this.name = config.name
-    this.endpoint = config.endpoint
+    this.endpoint = normalizeImageEndpoint(config.endpoint)
     this.apiKey = config.apiKey
     this.model = config.model
     this.defaultParams = config.defaultParams || {}
@@ -89,7 +89,7 @@ export class CustomProvider implements IImageProvider {
 
   async validateConfig(config: ImageProviderConfig): Promise<boolean> {
     try {
-      const response = await axios.get(config.endpoint, {
+      const response = await axios.get(normalizeImageEndpoint(config.endpoint), {
         timeout: 10000,
         headers: config.apiKey
           ? { Authorization: `Bearer ${config.apiKey}` }
@@ -156,4 +156,11 @@ export class CustomProvider implements IImageProvider {
 
     throw new Error(`CustomProvider 图生图响应无法解析: ${JSON.stringify(data).slice(0, 500)}`)
   }
+}
+
+function normalizeImageEndpoint(raw: string): string {
+  const trimmed = raw.replace(/\/+$/, '')
+  if (/\/images\/generations$/.test(trimmed)) return trimmed
+  if (/\/v\d+$/.test(trimmed)) return `${trimmed}/images/generations`
+  return `${trimmed}/v1/images/generations`
 }

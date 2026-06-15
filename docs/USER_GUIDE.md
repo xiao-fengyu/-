@@ -105,7 +105,7 @@ npm run dev
 如果你使用其他兼容 OpenAI 格式的 API：
 
 1. 选择"自定义"
-2. 填入 **端点 URL**（如 `https://your-api.com/v1/images/generations`）
+2. 填入 **端点 URL**（如 `https://your-api.com/v1`，也支持完整的 `/v1/images/generations`）
 3. 填入 **API Key**
 4. 填入 **模型名称**
 5. 点击 **"保存"**
