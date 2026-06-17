@@ -1,0 +1,45 @@
+{
+    "finishedAt":  "2026-06-17T06:08:10.7057453Z",
+    "runnerFiles":  [
+                        {
+                            "path":  "D:\\e-platform\\test-reports\\runs\\2026-06-17-image-generation-history-visible-retest-windows\\runner.js",
+                            "committedAsEvidence":  true,
+                            "exists":  true
+                        }
+                    ],
+    "startedAt":  "2026-06-17T06:08:10.3698046Z",
+    "providers":  [
+                      {
+                          "status":  200,
+                          "name":  "sec-visible-img-1781675954429",
+                          "id":  "img_1781675966065_3c3s",
+                          "deleted":  true
+                      }
+                  ],
+    "llms":  [
+                 {
+                     "status":  200,
+                     "name":  "sec-visible-llm-1781675954429",
+                     "id":  "llm_1781675968692_63n8",
+                     "deleted":  true
+                 }
+             ],
+    "images":  [
+                   {
+                       "status":  200,
+                       "path":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\a61306f63c94c4bf.png",
+                       "filename":  "a61306f63c94c4bf.png",
+                       "deleted":  true
+                   }
+               ],
+    "notes":  [
+
+              ],
+    "keyFiles":  [
+                     {
+                         "existed":  false,
+                         "path":  "C:\\eplatform-test\\real-llm.key",
+                         "existsAfter":  false
+                     }
+                 ]
+}
