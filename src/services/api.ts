@@ -196,13 +196,13 @@ export async function processImage(
 
 /** 获取图片列表 */
 export async function fetchImages(page = 1, pageSize = 50) {
-  const res = await api.get('/api/images', { params: { page, pageSize } })
+  const res = await api.get('/api/images/images', { params: { page, pageSize } })
   return res.data
 }
 
 /** 删除图片 */
 export async function deleteImage(filename: string) {
-  const res = await api.delete(`/api/images/${filename}`)
+  const res = await api.delete(`/api/images/images/${filename}`)
   return res.data
 }
 
