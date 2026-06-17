@@ -1,0 +1,441 @@
+{
+  "checks": [
+    {
+      "name": "target commit is recorded",
+      "ok": true,
+      "detail": {
+        "commit": "a1bb1d5"
+      },
+      "at": "2026-06-17T03:16:22.692Z"
+    },
+    {
+      "name": "installed Electron executable exists",
+      "ok": true,
+      "detail": {
+        "exePath": "C:\\Program Files\\e-platform\\e-platform.exe"
+      },
+      "at": "2026-06-17T03:16:22.693Z"
+    },
+    {
+      "name": "Windows Electron UI launched",
+      "ok": true,
+      "detail": {},
+      "at": "2026-06-17T03:16:26.661Z"
+    },
+    {
+      "name": "backend health ready",
+      "ok": true,
+      "detail": {},
+      "at": "2026-06-17T03:16:26.680Z"
+    },
+    {
+      "name": "image provider configured through Settings UI",
+      "ok": true,
+      "detail": {
+        "providerName": "sec-visible-img-1781666182681"
+      },
+      "at": "2026-06-17T03:16:34.835Z"
+    },
+    {
+      "name": "text LLM configured through Settings UI",
+      "ok": true,
+      "detail": {
+        "llmProviderName": "sec-visible-llm-1781666182681"
+      },
+      "at": "2026-06-17T03:16:37.346Z"
+    },
+    {
+      "name": "UI sent natural-language generation request",
+      "ok": true,
+      "detail": {
+        "requestUrl": "http://127.0.0.1:3001/api/images/generate-from-natural-language"
+      },
+      "at": "2026-06-17T03:16:42.975Z"
+    },
+    {
+      "name": "generation API response succeeded from UI path",
+      "ok": true,
+      "detail": {
+        "status": 200
+      },
+      "at": "2026-06-17T03:16:42.975Z"
+    },
+    {
+      "name": "generated images are visible and loaded in result area",
+      "ok": true,
+      "detail": {
+        "loadedVisible": [
+          {
+            "index": 0,
+            "tileVisible": true,
+            "selected": false,
+            "src": "http://127.0.0.1:3001/images/969934833e8885ce.png",
+            "complete": true,
+            "naturalWidth": 64,
+            "naturalHeight": 64,
+            "renderedWidth": 145,
+            "renderedHeight": 145
+          },
+          {
+            "index": 1,
+            "tileVisible": true,
+            "selected": false,
+            "src": "http://127.0.0.1:3001/images/4fbf240fe48c499f.png",
+            "complete": true,
+            "naturalWidth": 64,
+            "naturalHeight": 64,
+            "renderedWidth": 145,
+            "renderedHeight": 145
+          }
+        ]
+      },
+      "at": "2026-06-17T03:16:42.984Z"
+    },
+    {
+      "name": "generated image tile can be selected",
+      "ok": true,
+      "detail": {
+        "selectedTiles": 1
+      },
+      "at": "2026-06-17T03:16:43.570Z"
+    },
+    {
+      "name": "generated files exist under app image directory with bytes and dimensions",
+      "ok": true,
+      "detail": {
+        "files": [
+          {
+            "filename": "4fbf240fe48c499f.png",
+            "path": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\4fbf240fe48c499f.png",
+            "bytes": 134,
+            "format": "png",
+            "width": 64,
+            "height": 64
+          },
+          {
+            "filename": "969934833e8885ce.png",
+            "path": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\969934833e8885ce.png",
+            "bytes": 134,
+            "format": "png",
+            "width": 64,
+            "height": 64
+          }
+        ]
+      },
+      "at": "2026-06-17T03:16:43.572Z"
+    },
+    {
+      "name": "/api/images/images rows match this run files",
+      "ok": true,
+      "detail": {
+        "apiRows": [
+          {
+            "filename": "4fbf240fe48c499f.png",
+            "path": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\4fbf240fe48c499f.png",
+            "size": 134,
+            "modifiedAt": "2026-06-17T03:16:42.366Z"
+          },
+          {
+            "filename": "969934833e8885ce.png",
+            "path": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\969934833e8885ce.png",
+            "size": 134,
+            "modifiedAt": "2026-06-17T03:16:42.356Z"
+          }
+        ]
+      },
+      "at": "2026-06-17T03:16:43.584Z"
+    },
+    {
+      "name": "UI visible image src values match API/local generated records",
+      "ok": true,
+      "detail": {
+        "visibleSrcs": [
+          "http://127.0.0.1:3001/images/969934833e8885ce.png",
+          "http://127.0.0.1:3001/images/4fbf240fe48c499f.png"
+        ],
+        "matchedFilenames": [
+          "4fbf240fe48c499f.png",
+          "969934833e8885ce.png"
+        ]
+      },
+      "at": "2026-06-17T03:16:43.584Z"
+    },
+    {
+      "name": "generated images remain visible after return via history",
+      "ok": false,
+      "detail": {
+        "returnedMatches": []
+      },
+      "at": "2026-06-17T03:16:48.630Z"
+    },
+    {
+      "name": "path traversal inputs rejected without modifying outside file",
+      "ok": true,
+      "detail": {
+        "count": 12
+      },
+      "at": "2026-06-17T03:16:48.689Z"
+    },
+    {
+      "name": "temporary providers, generated images, and runner sentinel cleaned",
+      "ok": true,
+      "detail": {
+        "cleanup": [
+          {
+            "type": "imageProvider",
+            "id": "img_1781666193598_k2j0",
+            "ok": true
+          },
+          {
+            "type": "llmProvider",
+            "id": "llm_1781666196111_0pje",
+            "ok": true
+          },
+          {
+            "type": "generatedImage",
+            "filename": "4fbf240fe48c499f.png",
+            "ok": true
+          },
+          {
+            "type": "generatedImage",
+            "filename": "969934833e8885ce.png",
+            "ok": true
+          },
+          {
+            "type": "outsideSentinel",
+            "ok": true
+          }
+        ]
+      },
+      "at": "2026-06-17T03:16:48.707Z"
+    }
+  ],
+  "evidence": {
+    "screenshots": {
+      "before": "D:\\e-platform\\test-reports\\runs\\2026-06-17-image-generation-security-visible-windows\\screenshot-before-generation.png",
+      "after": "D:\\e-platform\\test-reports\\runs\\2026-06-17-image-generation-security-visible-windows\\screenshot-after-generation.png",
+      "returned": "D:\\e-platform\\test-reports\\runs\\2026-06-17-image-generation-security-visible-windows\\screenshot-after-return.png"
+    },
+    "generatedRequest": {
+      "method": "POST",
+      "url": "http://127.0.0.1:3001/api/images/generate-from-natural-language",
+      "postData": {
+        "description": "Windows security visible test: white ceramic mug, light gray background, natural light, centered ecommerce product image",
+        "providerConfig": {
+          "id": "img_1781666193598_k2j0",
+          "name": "sec-visible-img-1781666182681",
+          "type": "api",
+          "endpoint": "http://127.0.0.1:3107/v1",
+          "apiKey": "***",
+          "model": "mock-image-model",
+          "maxImages": 2,
+          "defaultParams": {},
+          "isDefault": false
+        },
+        "llmProviderId": "llm_1781666196111_0pje",
+        "count": 2,
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    "generatedResponse": {
+      "status": 200,
+      "ok": true,
+      "body": "{\"success\":true,\"data\":{\"mode\":\"text-to-image\",\"originalDescription\":\"Windows security visible test: white ceramic mug, light gray background, natural light, centered ecommerce product image\",\"prompt\":\"A clean product photo of a white ceramic mug centered on a light gray background, natural light, high detail.\",\"llmProvider\":{\"id\":\"llm_1781666196111_0pje\",\"name\":\"sec-visible-llm-1781666182681\",\"model\":\"mock-text-model\"},\"imageProvider\":\"sec-visible-img-1781666182681\",\"images\":[{\"localPath\":\"C:\\\\Users\\\\Administrator\\\\AppData\\\\Roaming\\\\e-platform\\\\data\\\\images\\\\969934833e8885ce.png\",\"url\":\"/images/969934833e8885ce.png\",\"width\":64,\"height\":64,\"fileSize\":134,\"format\":\"png\"},{\"localPath\":\"C:\\\\Users\\\\Administrator\\\\AppData\\\\Roaming\\\\e-platform\\\\data\\\\images\\\\4fbf240fe48c499f.png\",\"url\":\"/images/4fbf240fe48c499f.png\",\"width\":64,\"height\":64,\"fileSize\":134,\"format\":\"png\"}],\"count\":2}}"
+    },
+    "visibleImages": [
+      {
+        "index": 0,
+        "tileVisible": true,
+        "selected": false,
+        "src": "http://127.0.0.1:3001/images/969934833e8885ce.png",
+        "complete": true,
+        "naturalWidth": 64,
+        "naturalHeight": 64,
+        "renderedWidth": 145,
+        "renderedHeight": 145
+      },
+      {
+        "index": 1,
+        "tileVisible": true,
+        "selected": false,
+        "src": "http://127.0.0.1:3001/images/4fbf240fe48c499f.png",
+        "complete": true,
+        "naturalWidth": 64,
+        "naturalHeight": 64,
+        "renderedWidth": 145,
+        "renderedHeight": 145
+      }
+    ],
+    "selectedTiles": 1,
+    "returnedImages": [],
+    "apiRows": [
+      {
+        "filename": "4fbf240fe48c499f.png",
+        "path": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\4fbf240fe48c499f.png",
+        "size": 134,
+        "modifiedAt": "2026-06-17T03:16:42.366Z"
+      },
+      {
+        "filename": "969934833e8885ce.png",
+        "path": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\969934833e8885ce.png",
+        "size": 134,
+        "modifiedAt": "2026-06-17T03:16:42.356Z"
+      }
+    ],
+    "generatedFiles": [
+      {
+        "filename": "4fbf240fe48c499f.png",
+        "path": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\4fbf240fe48c499f.png",
+        "bytes": 134,
+        "format": "png",
+        "width": 64,
+        "height": 64
+      },
+      {
+        "filename": "969934833e8885ce.png",
+        "path": "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\969934833e8885ce.png",
+        "bytes": 134,
+        "format": "png",
+        "width": 64,
+        "height": 64
+      }
+    ],
+    "pathTraversal": [
+      {
+        "endpoint": "compliance",
+        "method": "POST",
+        "status": 500,
+        "accepted": false,
+        "rejected": true,
+        "outsideSentinelUnchanged": true,
+        "body": "{\"success\":false,\"error\":\"图片文件名无效\"}"
+      },
+      {
+        "endpoint": "process",
+        "method": "POST",
+        "status": 500,
+        "accepted": false,
+        "rejected": true,
+        "outsideSentinelUnchanged": true,
+        "body": "{\"success\":false,\"error\":\"图片文件名无效\"}"
+      },
+      {
+        "endpoint": "convert",
+        "method": "POST",
+        "status": 500,
+        "accepted": false,
+        "rejected": true,
+        "outsideSentinelUnchanged": true,
+        "body": "{\"success\":false,\"error\":\"图片文件名无效\"}"
+      },
+      {
+        "endpoint": "delete",
+        "method": "DELETE",
+        "status": 500,
+        "accepted": false,
+        "rejected": true,
+        "outsideSentinelUnchanged": true,
+        "body": "{\"success\":false,\"error\":\"图片文件名无效\"}"
+      },
+      {
+        "endpoint": "compliance",
+        "method": "POST",
+        "status": 500,
+        "accepted": false,
+        "rejected": true,
+        "outsideSentinelUnchanged": true,
+        "body": "{\"success\":false,\"error\":\"图片文件名无效\"}"
+      },
+      {
+        "endpoint": "process",
+        "method": "POST",
+        "status": 500,
+        "accepted": false,
+        "rejected": true,
+        "outsideSentinelUnchanged": true,
+        "body": "{\"success\":false,\"error\":\"图片文件名无效\"}"
+      },
+      {
+        "endpoint": "convert",
+        "method": "POST",
+        "status": 500,
+        "accepted": false,
+        "rejected": true,
+        "outsideSentinelUnchanged": true,
+        "body": "{\"success\":false,\"error\":\"图片文件名无效\"}"
+      },
+      {
+        "endpoint": "delete",
+        "method": "DELETE",
+        "status": 500,
+        "accepted": false,
+        "rejected": true,
+        "outsideSentinelUnchanged": true,
+        "body": "{\"success\":false,\"error\":\"图片文件名无效\"}"
+      },
+      {
+        "endpoint": "compliance",
+        "method": "POST",
+        "status": 500,
+        "accepted": false,
+        "rejected": true,
+        "outsideSentinelUnchanged": true,
+        "body": "{\"success\":false,\"error\":\"图片文件名无效\"}"
+      },
+      {
+        "endpoint": "process",
+        "method": "POST",
+        "status": 500,
+        "accepted": false,
+        "rejected": true,
+        "outsideSentinelUnchanged": true,
+        "body": "{\"success\":false,\"error\":\"图片文件名无效\"}"
+      },
+      {
+        "endpoint": "convert",
+        "method": "POST",
+        "status": 500,
+        "accepted": false,
+        "rejected": true,
+        "outsideSentinelUnchanged": true,
+        "body": "{\"success\":false,\"error\":\"图片文件名无效\"}"
+      },
+      {
+        "endpoint": "delete",
+        "method": "DELETE",
+        "status": 500,
+        "accepted": false,
+        "rejected": true,
+        "outsideSentinelUnchanged": true,
+        "body": "{\"success\":false,\"error\":\"图片文件名无效\"}"
+      }
+    ],
+    "cleanup": [
+      {
+        "type": "imageProvider",
+        "id": "img_1781666193598_k2j0",
+        "ok": true
+      },
+      {
+        "type": "llmProvider",
+        "id": "llm_1781666196111_0pje",
+        "ok": true
+      },
+      {
+        "type": "generatedImage",
+        "filename": "4fbf240fe48c499f.png",
+        "ok": true
+      },
+      {
+        "type": "generatedImage",
+        "filename": "969934833e8885ce.png",
+        "ok": true
+      },
+      {
+        "type": "outsideSentinel",
+        "ok": true
+      }
+    ]
+  }
+}
