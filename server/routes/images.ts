@@ -6,6 +6,8 @@ import { Router } from 'express'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as crypto from 'crypto'
+import * as net from 'net'
+import * as dns from 'dns/promises'
 import axios from 'axios'
 import multer from 'multer'
 import { ImageProcessor, PDD_REQUIREMENTS } from '../services/image-processor'
@@ -24,9 +26,142 @@ const DATA_DIR = process.env.DB_DIR
   ? path.join(process.env.DB_DIR, 'images')
   : path.join(process.cwd(), 'data/images')
 const processor = new ImageProcessor(DATA_DIR)
+const MAX_REMOTE_IMAGE_BYTES = 20 * 1024 * 1024
+const MAX_BASE64_IMAGE_BYTES = 20 * 1024 * 1024
 
 function imageUrlFromLocalPath(localPath: string): string {
   return `/images/${path.basename(localPath)}`
+}
+
+function ensureDataDir(): void {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
+}
+
+function resolveImageFilePath(imagePath: string): string {
+  const baseName = path.basename(imagePath)
+  if (!/^[a-zA-Z0-9._-]+\.(jpg|jpeg|png|webp)$/i.test(baseName)) {
+    throw new Error('图片文件名无效')
+  }
+
+  const resolved = path.resolve(path.isAbsolute(imagePath) ? imagePath : path.join(DATA_DIR, baseName))
+  const dataRoot = path.resolve(DATA_DIR)
+  const relativePath = path.relative(dataRoot, resolved)
+  if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+    throw new Error('图片路径越界')
+  }
+  return resolved
+}
+
+function isPrivateIpAddress(address: string): boolean {
+  const ipVersion = net.isIP(address)
+  if (ipVersion === 4) {
+    const parts = address.split('.').map(Number)
+    const [a, b] = parts
+    return (
+      a === 10 ||
+      a === 127 ||
+      a === 0 ||
+      a >= 224 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168)
+    )
+  }
+
+  if (ipVersion === 6) {
+    const normalized = address.toLowerCase().replace(/^\[|\]$/g, '')
+    return (
+      normalized === '::1' ||
+      normalized === '::' ||
+      normalized.startsWith('fc') ||
+      normalized.startsWith('fd') ||
+      normalized.startsWith('fe80:')
+    )
+  }
+
+  return false
+}
+
+function assertPublicHttpUrl(rawUrl: string): URL {
+  const parsed = new URL(rawUrl)
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    throw new Error('图片 URL 只支持 http/https')
+  }
+
+  const hostname = parsed.hostname.toLowerCase()
+  if (
+    hostname === 'localhost' ||
+    hostname.endsWith('.localhost') ||
+    hostname === 'metadata.google.internal'
+  ) {
+    throw new Error('不允许下载本地或内网图片 URL')
+  }
+
+  if (isPrivateIpAddress(hostname)) {
+    throw new Error('不允许下载本地或内网图片 URL')
+  }
+
+  return parsed
+}
+
+async function assertPublicResolvedUrl(parsed: URL): Promise<void> {
+  if (net.isIP(parsed.hostname)) return
+  const addresses = await dns.lookup(parsed.hostname, { all: true, verbatim: true })
+  if (!addresses.length || addresses.some((entry) => isPrivateIpAddress(entry.address))) {
+    throw new Error('不允许下载解析到本地或内网地址的图片 URL')
+  }
+}
+
+function imageExtensionFromContentType(contentType?: string): 'png' | 'jpg' | 'webp' {
+  const normalized = String(contentType || '').toLowerCase()
+  if (normalized.includes('image/png')) return 'png'
+  if (normalized.includes('image/webp')) return 'webp'
+  return 'jpg'
+}
+
+async function persistGeneratedImage(img: { url?: string; base64?: string }) {
+  ensureDataDir()
+  const hash = crypto.randomBytes(8).toString('hex')
+  let localPath: string
+
+  if (img.base64) {
+    const buffer = Buffer.from(img.base64, 'base64')
+    if (buffer.length > MAX_BASE64_IMAGE_BYTES) throw new Error('base64 图片超过大小限制')
+    localPath = path.join(DATA_DIR, `${hash}.png`)
+    fs.writeFileSync(localPath, buffer)
+  } else if (img.url) {
+    const parsed = assertPublicHttpUrl(img.url)
+    await assertPublicResolvedUrl(parsed)
+    const dl = await axios.get(parsed.toString(), {
+      responseType: 'arraybuffer',
+      timeout: 30000,
+      maxRedirects: 0,
+      maxContentLength: MAX_REMOTE_IMAGE_BYTES,
+      maxBodyLength: MAX_REMOTE_IMAGE_BYTES,
+      validateStatus: (status) => status >= 200 && status < 300,
+    })
+    const contentType = String(dl.headers['content-type'] || '').toLowerCase()
+    if (contentType && !contentType.startsWith('image/')) {
+      throw new Error('远程 URL 返回的不是图片内容')
+    }
+    if (Buffer.byteLength(dl.data) > MAX_REMOTE_IMAGE_BYTES) throw new Error('远程图片超过大小限制')
+    const ext = imageExtensionFromContentType(contentType)
+    localPath = path.join(DATA_DIR, `${hash}.${ext}`)
+    fs.writeFileSync(localPath, dl.data)
+  } else {
+    throw new Error('provider 未返回图片 URL 或 base64 数据')
+  }
+
+  const stats = fs.statSync(localPath)
+  const metadata = await processor.checkCompliance(localPath)
+  return {
+    localPath,
+    url: imageUrlFromLocalPath(localPath),
+    width: metadata.width,
+    height: metadata.height,
+    fileSize: stats.size,
+    format: metadata.format,
+  }
 }
 
 function extractErrorMessage(err: any): string {
@@ -121,42 +256,7 @@ router.post('/generate', async (req, res) => {
     }> = []
 
     for (const img of response.images) {
-      const imageUrl = img.url || img.base64
-      if (!imageUrl) continue
-
-      let localPath: string
-      let displayUrl: string
-
-      if (img.base64) {
-        // base64 数据直接保存
-        const hash = crypto.randomBytes(8).toString('hex')
-        localPath = path.join(DATA_DIR, `${hash}.png`)
-        fs.writeFileSync(localPath, Buffer.from(img.base64, 'base64'))
-        displayUrl = imageUrlFromLocalPath(localPath)
-      } else {
-        // 从 URL 下载
-        const dl = await axios.get(imageUrl, {
-          responseType: 'arraybuffer',
-          timeout: 30000,
-        })
-        const hash = crypto.randomBytes(8).toString('hex')
-        const ext = imageUrl.includes('.png') ? 'png' : 'jpg'
-        localPath = path.join(DATA_DIR, `${hash}.${ext}`)
-        fs.writeFileSync(localPath, dl.data)
-        displayUrl = imageUrl
-      }
-
-      const stats = fs.statSync(localPath)
-      const metadata = await processor.checkCompliance(localPath)
-
-      results.push({
-        localPath,
-        url: displayUrl,
-        width: metadata.width,
-        height: metadata.height,
-        fileSize: stats.size,
-        format: metadata.format,
-      })
+      results.push(await persistGeneratedImage(img))
     }
 
     // 保存到数据库
@@ -283,40 +383,7 @@ router.post('/generate-from-image', uploadImage.single('referenceImage'), async 
     }> = []
 
     for (const img of response.images) {
-      const imageUrl = img.url || img.base64
-      if (!imageUrl) continue
-
-      let localPath: string
-      let displayUrl: string
-
-      if (img.base64) {
-        const hash = crypto.randomBytes(8).toString('hex')
-        localPath = path.join(DATA_DIR, `${hash}.png`)
-        fs.writeFileSync(localPath, Buffer.from(img.base64, 'base64'))
-        displayUrl = imageUrlFromLocalPath(localPath)
-      } else {
-        const dl = await axios.get(imageUrl, {
-          responseType: 'arraybuffer',
-          timeout: 30000,
-        })
-        const hash = crypto.randomBytes(8).toString('hex')
-        const ext = imageUrl.includes('.png') ? 'png' : 'jpg'
-        localPath = path.join(DATA_DIR, `${hash}.${ext}`)
-        fs.writeFileSync(localPath, dl.data)
-        displayUrl = imageUrl
-      }
-
-      const stats = fs.statSync(localPath)
-      const metadata = await processor.checkCompliance(localPath)
-
-      results.push({
-        localPath,
-        url: displayUrl,
-        width: metadata.width,
-        height: metadata.height,
-        fileSize: stats.size,
-        format: metadata.format,
-      })
+      results.push(await persistGeneratedImage(img))
     }
 
     // 保存到数据库
@@ -366,8 +433,9 @@ router.post('/compliance', async (req, res) => {
     if (!imagePath) {
       return res.status(400).json({ success: false, error: 'imagePath 不能为空' })
     }
+    const safeImagePath = resolveImageFilePath(imagePath)
     const result = await processor.checkCompliance(
-      imagePath,
+      safeImagePath,
       requirements || PDD_REQUIREMENTS
     )
     res.json({ success: true, data: result })
@@ -383,8 +451,9 @@ router.post('/process', async (req, res) => {
     if (!imagePath) {
       return res.status(400).json({ success: false, error: 'imagePath 不能为空' })
     }
+    const safeImagePath = resolveImageFilePath(imagePath)
     const result = await processor.processToCompliant(
-      imagePath,
+      safeImagePath,
       requirements || PDD_REQUIREMENTS,
       targetWidth,
       targetHeight
@@ -404,7 +473,9 @@ router.post('/convert', async (req, res) => {
         .status(400)
         .json({ success: false, error: '缺少必要参数: imagePath, outputPath, format' })
     }
-    const result = await processor.convertFormat(imagePath, outputPath, format)
+    const safeImagePath = resolveImageFilePath(imagePath)
+    const safeOutputPath = resolveImageFilePath(outputPath)
+    const result = await processor.convertFormat(safeImagePath, safeOutputPath, format)
     res.json({ success: true, data: result })
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message })
@@ -445,7 +516,7 @@ router.get('/images', (_req, res) => {
 /** 删除图片 */
 router.delete('/images/:filename', (req, res) => {
   try {
-    const filePath = path.join(DATA_DIR, req.params.filename)
+    const filePath = resolveImageFilePath(req.params.filename)
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ success: false, error: '文件不存在' })
     }
@@ -638,38 +709,7 @@ router.post(
 
       try {
         for (const img of response.images) {
-          const imageUrl = img.url || img.base64
-          if (!imageUrl) continue
-
-          let localPath: string
-          let displayUrl: string
-          if (img.base64) {
-            const hash = crypto.randomBytes(8).toString('hex')
-            localPath = path.join(DATA_DIR, `${hash}.png`)
-            fs.writeFileSync(localPath, Buffer.from(img.base64, 'base64'))
-            displayUrl = imageUrlFromLocalPath(localPath)
-          } else {
-            const dl = await axios.get(imageUrl, {
-              responseType: 'arraybuffer',
-              timeout: 30000,
-            })
-            const hash = crypto.randomBytes(8).toString('hex')
-            const ext = imageUrl.includes('.png') ? 'png' : 'jpg'
-            localPath = path.join(DATA_DIR, `${hash}.${ext}`)
-            fs.writeFileSync(localPath, dl.data)
-            displayUrl = imageUrl
-          }
-
-          const stats = fs.statSync(localPath)
-          const metadata = await processor.checkCompliance(localPath)
-          results.push({
-            localPath,
-            url: displayUrl,
-            width: metadata.width,
-            height: metadata.height,
-            fileSize: stats.size,
-            format: metadata.format,
-          })
+          results.push(await persistGeneratedImage(img))
         }
       } catch (err: any) {
         throw stageError('图片下载或保存', err)

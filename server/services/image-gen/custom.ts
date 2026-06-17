@@ -68,7 +68,7 @@ export class CustomProvider implements IImageProvider {
     if (Array.isArray(data.images)) {
       return {
         created: data.created || Math.floor(Date.now() / 1000),
-        images: data.images,
+        images: normalizeImages(data.images),
       }
     }
 
@@ -142,7 +142,7 @@ export class CustomProvider implements IImageProvider {
     if (Array.isArray(data.images)) {
       return {
         created: data.created || Math.floor(Date.now() / 1000),
-        images: data.images,
+        images: normalizeImages(data.images),
       }
     }
 
@@ -156,6 +156,21 @@ export class CustomProvider implements IImageProvider {
 
     throw new Error(`CustomProvider 图生图响应无法解析: ${JSON.stringify(data).slice(0, 500)}`)
   }
+}
+
+function normalizeImages(images: unknown[]): Array<{ url?: string; base64?: string }> {
+  return images.flatMap((item) => {
+    if (typeof item === 'string') return [{ url: item, base64: undefined }]
+    if (item && typeof item === 'object') {
+      const image = item as { url?: string; b64_json?: string; base64?: string }
+      const normalized = {
+        url: image.url,
+        base64: image.base64 || image.b64_json,
+      }
+      return normalized.url || normalized.base64 ? [normalized] : []
+    }
+    return []
+  })
 }
 
 function normalizeImageEndpoint(raw: string): string {
