@@ -1,0 +1,380 @@
+﻿{
+    "rawRunnerJson":  "image-generation-visible-acceptance-2026-06-17T07-22-10-751Z.json",
+    "cleanupJson":  "cleanup-checks.json",
+    "backendProbeJson":  "external-backend-probe.json",
+    "checks":  [
+                   {
+                       "name":  "installed Electron executable exists",
+                       "ok":  true,
+                       "extra":  {
+                                     "exePath":  "C:\\Program Files\\e-platform\\e-platform.exe"
+                                 },
+                       "at":  "2026-06-17T07:22:10.754Z"
+                   },
+                   {
+                       "name":  "real LLM/image key file exists",
+                       "ok":  true,
+                       "extra":  {
+                                     "keyPath":  "C:\\eplatform-test\\real-llm.key"
+                                 },
+                       "at":  "2026-06-17T07:22:10.755Z"
+                   },
+                   {
+                       "name":  "key file loaded without logging secret",
+                       "ok":  true,
+                       "extra":  {
+                                     "baseUrl":  "https://openclawroot.com/v1",
+                                     "textModel":  "MiniMax-M3-highspeed",
+                                     "imageModel":  "gpt-image-2",
+                                     "keyLength":  51
+                                 },
+                       "at":  "2026-06-17T07:22:10.756Z"
+                   },
+                   {
+                       "name":  "installed Electron UI launched",
+                       "ok":  true,
+                       "extra":  {
+
+                                 },
+                       "at":  "2026-06-17T07:22:15.477Z"
+                   },
+                   {
+                       "name":  "backend health ready",
+                       "ok":  true,
+                       "extra":  {
+
+                                 },
+                       "at":  "2026-06-17T07:22:15.495Z"
+                   },
+                   {
+                       "name":  "UI added custom image provider in Settings",
+                       "ok":  true,
+                       "extra":  {
+                                     "name":  "visible-img-1781680935581",
+                                     "visibleMatches":  1
+                                 },
+                       "at":  "2026-06-17T07:22:19.611Z"
+                   },
+                   {
+                       "name":  "API prepared custom text LLM for UI flow",
+                       "ok":  true,
+                       "extra":  {
+                                     "status":  200,
+                                     "id":  "visible_llm_1781680940040",
+                                     "name":  "visible-llm-1781680940040",
+                                     "model":  "MiniMax-M3-highspeed"
+                                 },
+                       "at":  "2026-06-17T07:22:20.051Z"
+                   },
+                   {
+                       "name":  "script captured prompt-from-text output",
+                       "ok":  true,
+                       "extra":  {
+                                     "status":  200,
+                                     "promptLength":  483,
+                                     "llmProvider":  {
+                                                         "id":  "visible_llm_1781680940040",
+                                                         "name":  "visible-llm-1781680940040",
+                                                         "model":  "MiniMax-M3-highspeed"
+                                                     }
+                                 },
+                       "at":  "2026-06-17T07:22:26.412Z"
+                   },
+                   {
+                       "name":  "script compared app and minimal image provider payloads",
+                       "ok":  true,
+                       "extra":  {
+                                     "endpoint":  "https://openclawroot.com/v1/images/generations",
+                                     "appStatus":  200,
+                                     "appOk":  true,
+                                     "minimalStatus":  200,
+                                     "minimalOk":  true
+                                 },
+                       "at":  "2026-06-17T07:24:11.846Z"
+                   },
+                   {
+                       "name":  "image provider selected in UI before generation",
+                       "ok":  true,
+                       "extra":  {
+                                     "name":  "visible-img-1781680935581"
+                                 },
+                       "at":  "2026-06-17T07:24:17.379Z"
+                   },
+                   {
+                       "name":  "UI sent image generation API request",
+                       "ok":  true,
+                       "extra":  {
+                                     "requests":  [
+                                                      {
+                                                          "phase":  "request",
+                                                          "method":  "POST",
+                                                          "url":  "http://127.0.0.1:3001/api/images/generate-from-natural-language",
+                                                          "postData":  {
+                                                                           "description":  "鐢ㄦ埛鍙鎬ч獙鏀讹細鐧借壊闄剁摲椹厠鏉紝娴呯伆鑳屾櫙锛岃嚜鐒跺厜锛岀數鍟嗕富鍥撅紝涓讳綋瀹屾暣灞呬腑",
+                                                                           "providerConfig":  {
+                                                                                                  "id":  "img_1781680938537_gun3",
+                                                                                                  "name":  "visible-img-1781680935581",
+                                                                                                  "type":  "api",
+                                                                                                  "endpoint":  "https://openclawroot.com/v1",
+                                                                                                  "apiKey":  "***",
+                                                                                                  "model":  "gpt-image-2",
+                                                                                                  "maxImages":  2,
+                                                                                                  "defaultParams":  {
+
+                                                                                                                    },
+                                                                                                  "isDefault":  false
+                                                                                              },
+                                                                           "llmProviderId":  "visible_llm_1781680940040",
+                                                                           "count":  2,
+                                                                           "width":  1024,
+                                                                           "height":  1024
+                                                                       },
+                                                          "at":  "2026-06-17T07:24:17.472Z"
+                                                      },
+                                                      {
+                                                          "phase":  "response",
+                                                          "status":  200,
+                                                          "url":  "http://127.0.0.1:3001/api/images/generate-from-natural-language",
+                                                          "body":  "{\"success\":true,\"data\":{\"mode\":\"text-to-image\",\"originalDescription\":\"鐢ㄦ埛鍙鎬ч獙鏀讹細鐧借壊闄剁摲椹厠鏉紝娴呯伆鑳屾櫙锛岃嚜鐒跺厜锛岀數鍟嗕富鍥撅紝涓讳綋瀹屾暣灞呬腑\",\"prompt\":\"A pristine white ceramic coffee mug, clean and minimal design, placed perfectly centered in the frame. Light gray seamless background with soft natural lighting from the side, creating gentle shadows and subtle highlights on the smooth ceramic surface. Professional e-commerce product photography style, sharp focus, high-end commercial look, ultra-sharp details, 4K resolution, photorealistic rendering, studio lighting setup, no people, no text, no logos, complete product visibility from top to bottom.\",\"attributes\":{\"subject\":\"white ceramic coffee mug\",\"style\":\"e-commerce product photography, commercial, photorealistic\",\"background\":\"light gray seamless backdrop\",\"lighting\":\"soft natural light, gentle side lighting, subtle shadows\",\"cameraAngle\":\"eye-level, perfectly centered, full product view\",\"extra\":[\"4K\",\"ultra-sharp\",\"high-end\",\"clean composition\",\"complete product visibility\",\"no people\",\"no logos\"]},\"llmProvider\":{\"id\":\"visible_llm_1781680940040\",\"name\":\"visible-llm-1781680940040\",\"model\":\"MiniMax-M3-highspeed\"},\"imageProvider\":\"visible-img-1781680935581\",\"im",
+                                                          "at":  "2026-06-17T07:25:18.721Z"
+                                                      }
+                                                  ]
+                                 },
+                       "at":  "2026-06-17T07:25:22.396Z"
+                   },
+                   {
+                       "name":  "UI generation loading settled",
+                       "ok":  true,
+                       "extra":  {
+                                     "hasGeneratingText":  false,
+                                     "resultTiles":  2,
+                                     "historyTiles":  0
+                                 },
+                       "at":  "2026-06-17T07:25:22.396Z"
+                   },
+                   {
+                       "name":  "no visible UI error after generation",
+                       "ok":  true,
+                       "extra":  {
+                                     "visibleErrors":  [
+
+                                                       ]
+                                 },
+                       "at":  "2026-06-17T07:25:22.412Z"
+                   },
+                   {
+                       "name":  "current result grid has requested visible loaded images",
+                       "ok":  true,
+                       "extra":  {
+                                     "visibleLoadedImages":  2,
+                                     "totalTiles":  2,
+                                     "images":  [
+                                                    {
+                                                        "index":  0,
+                                                        "naturalWidth":  1402,
+                                                        "naturalHeight":  1122,
+                                                        "renderedWidth":  145,
+                                                        "renderedHeight":  145
+                                                    },
+                                                    {
+                                                        "index":  1,
+                                                        "naturalWidth":  1254,
+                                                        "naturalHeight":  1254,
+                                                        "renderedWidth":  145,
+                                                        "renderedHeight":  145
+                                                    }
+                                                ]
+                                 },
+                       "at":  "2026-06-17T07:25:22.426Z"
+                   },
+                   {
+                       "name":  "user can select a generated result tile",
+                       "ok":  true,
+                       "extra":  {
+                                     "selectedTiles":  1
+                                 },
+                       "at":  "2026-06-17T07:25:24.519Z"
+                   },
+                   {
+                       "name":  "script verified generated image files",
+                       "ok":  true,
+                       "extra":  {
+                                     "count":  2,
+                                     "images":  [
+                                                    {
+                                                        "file":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\35589cacba8d4c14.png",
+                                                        "bytes":  1336304,
+                                                        "format":  "png",
+                                                        "width":  1402,
+                                                        "height":  1122
+                                                    },
+                                                    {
+                                                        "file":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\b853eb4ed08ec5de.png",
+                                                        "bytes":  1313499,
+                                                        "format":  "png",
+                                                        "width":  1254,
+                                                        "height":  1254
+                                                    }
+                                                ]
+                                 },
+                       "at":  "2026-06-17T07:25:24.525Z"
+                   },
+                   {
+                       "name":  "script verified image dimensions and bytes",
+                       "ok":  true,
+                       "extra":  {
+                                     "images":  [
+                                                    {
+                                                        "file":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\35589cacba8d4c14.png",
+                                                        "bytes":  1336304,
+                                                        "format":  "png",
+                                                        "width":  1402,
+                                                        "height":  1122
+                                                    },
+                                                    {
+                                                        "file":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\b853eb4ed08ec5de.png",
+                                                        "bytes":  1313499,
+                                                        "format":  "png",
+                                                        "width":  1254,
+                                                        "height":  1254
+                                                    }
+                                                ]
+                                 },
+                       "at":  "2026-06-17T07:25:24.525Z"
+                   },
+                   {
+                       "name":  "script verified generated images visible via API",
+                       "ok":  true,
+                       "extra":  {
+                                     "apiRows":  2,
+                                     "matchedRows":  2
+                                 },
+                       "at":  "2026-06-17T07:25:24.534Z"
+                   },
+                   {
+                       "name":  "visible UI images match generated files or API rows",
+                       "ok":  true,
+                       "extra":  {
+                                     "matchedVisibleImages":  2,
+                                     "matches":  [
+                                                     {
+                                                         "index":  0,
+                                                         "srcKind":  "remote",
+                                                         "srcName":  "35589cacba8d4c14.png",
+                                                         "matchedByFileName":  true,
+                                                         "matchedByApiName":  true,
+                                                         "matchedByApiPath":  false,
+                                                         "matchedByLoadedRemote":  true,
+                                                         "matched":  true
+                                                     },
+                                                     {
+                                                         "index":  1,
+                                                         "srcKind":  "remote",
+                                                         "srcName":  "b853eb4ed08ec5de.png",
+                                                         "matchedByFileName":  true,
+                                                         "matchedByApiName":  true,
+                                                         "matchedByApiPath":  false,
+                                                         "matchedByLoadedRemote":  true,
+                                                         "matched":  true
+                                                     }
+                                                 ]
+                                 },
+                       "at":  "2026-06-17T07:25:24.535Z"
+                   },
+                   {
+                       "name":  "generated images remain visible after returning to AI Generation",
+                       "ok":  false,
+                       "extra":  {
+                                     "visibleLoadedHistoryImages":  0,
+                                     "matchedHistoryImages":  0,
+                                     "matches":  [
+
+                                                 ]
+                                 },
+                       "at":  "2026-06-17T07:25:42.652Z"
+                   },
+                   {
+                       "name":  "cleanup custom text LLM via API",
+                       "ok":  true,
+                       "extra":  {
+                                     "status":  200,
+                                     "id":  "visible_llm_1781680940040"
+                                 },
+                       "at":  "2026-06-17T07:25:42.662Z"
+                   },
+                   {
+                       "name":  "cleanup custom image provider via API",
+                       "ok":  true,
+                       "extra":  {
+                                     "status":  200,
+                                     "id":  "img_1781680938537_gun3",
+                                     "name":  "visible-img-1781680935581"
+                                 },
+                       "at":  "2026-06-17T07:25:42.673Z"
+                   },
+                   {
+                       "name":  "cleanup key file from Windows test directory",
+                       "ok":  true,
+                       "extra":  {
+                                     "path":  "C:\\eplatform-test\\real-llm.key"
+                                 },
+                       "at":  "2026-06-17T07:25:42.845Z"
+                   }
+               ],
+    "cleanup":  {
+                    "startedAt":  "2026-06-17T07:28:44.1620432Z",
+                    "images":  [
+                                   {
+                                       "filename":  "35589cacba8d4c14.png",
+                                       "path":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\35589cacba8d4c14.png",
+                                       "existedBefore":  true,
+                                       "deleteStatus":  0,
+                                       "deleteOk":  false,
+                                       "existsAfter":  true,
+                                       "error":  "无法连接到远程服务器"
+                                   },
+                                   {
+                                       "filename":  "b853eb4ed08ec5de.png",
+                                       "path":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\b853eb4ed08ec5de.png",
+                                       "existedBefore":  true,
+                                       "deleteStatus":  0,
+                                       "deleteOk":  false,
+                                       "existsAfter":  true,
+                                       "error":  "无法连接到远程服务器"
+                                   }
+                               ],
+                    "apiRowsAfterCleanup":  null,
+                    "keyFile":  {
+                                    "path":  "C:\\eplatform-test\\real-llm.key",
+                                    "existsAfter":  false
+                                },
+                    "notes":  [
+                                  "api row cleanup check failed: 无法连接到远程服务器"
+                              ],
+                    "finishedAt":  "2026-06-17T07:28:50.3080916Z",
+                    "directFileCleanup":  [
+                                              {
+                                                  "path":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\35589cacba8d4c14.png",
+                                                  "filename":  "35589cacba8d4c14.png",
+                                                  "withinImageDir":  true,
+                                                  "existedBefore":  true,
+                                                  "deleted":  true,
+                                                  "existsAfter":  false
+                                              },
+                                              {
+                                                  "path":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\b853eb4ed08ec5de.png",
+                                                  "filename":  "b853eb4ed08ec5de.png",
+                                                  "withinImageDir":  true,
+                                                  "existedBefore":  true,
+                                                  "deleted":  true,
+                                                  "existsAfter":  false
+                                              }
+                                          ],
+                    "cleanupConclusion":  "API cleanup could not run because the installed app backend was closed after the UI runner; generated test image files were removed directly after verifying they were under the e-platform images directory."
+                },
+    "notes":  [
+                  "The qwen3.7-plus probe returned HTTP 503 in about 650 ms before the rerun was switched back to gpt-image-2.",
+                  "The UI rerun with gpt-image-2 produced two loaded result tiles, valid files, and matching API rows.",
+                  "History visibility after navigating away and back remained failing."
+              ]
+}

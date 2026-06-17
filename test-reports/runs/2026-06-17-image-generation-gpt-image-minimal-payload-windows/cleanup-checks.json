@@ -1,0 +1,51 @@
+﻿{
+    "startedAt":  "2026-06-17T07:28:44.1620432Z",
+    "images":  [
+                   {
+                       "filename":  "35589cacba8d4c14.png",
+                       "path":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\35589cacba8d4c14.png",
+                       "existedBefore":  true,
+                       "deleteStatus":  0,
+                       "deleteOk":  false,
+                       "existsAfter":  true,
+                       "error":  "无法连接到远程服务器"
+                   },
+                   {
+                       "filename":  "b853eb4ed08ec5de.png",
+                       "path":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\b853eb4ed08ec5de.png",
+                       "existedBefore":  true,
+                       "deleteStatus":  0,
+                       "deleteOk":  false,
+                       "existsAfter":  true,
+                       "error":  "无法连接到远程服务器"
+                   }
+               ],
+    "apiRowsAfterCleanup":  null,
+    "keyFile":  {
+                    "path":  "C:\\eplatform-test\\real-llm.key",
+                    "existsAfter":  false
+                },
+    "notes":  [
+                  "api row cleanup check failed: 无法连接到远程服务器"
+              ],
+    "finishedAt":  "2026-06-17T07:28:50.3080916Z",
+    "directFileCleanup":  [
+                              {
+                                  "path":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\35589cacba8d4c14.png",
+                                  "filename":  "35589cacba8d4c14.png",
+                                  "withinImageDir":  true,
+                                  "existedBefore":  true,
+                                  "deleted":  true,
+                                  "existsAfter":  false
+                              },
+                              {
+                                  "path":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\b853eb4ed08ec5de.png",
+                                  "filename":  "b853eb4ed08ec5de.png",
+                                  "withinImageDir":  true,
+                                  "existedBefore":  true,
+                                  "deleted":  true,
+                                  "existsAfter":  false
+                              }
+                          ],
+    "cleanupConclusion":  "API cleanup could not run because the installed app backend was closed after the UI runner; generated test image files were removed directly after verifying they were under the e-platform images directory."
+}

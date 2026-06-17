@@ -1,0 +1,216 @@
+﻿{
+    "taskId":  "2026-06-17-image-generation-gpt-image-minimal-payload",
+    "commit":  "c4f9f7d44fff11f5299cd7fee23b09fc19c32a85",
+    "requiredCommits":  [
+                            "c4f9f7d",
+                            "12516ca"
+                        ],
+    "status":  "partial-fail",
+    "verdict":  "partial-fail",
+    "endpointMode":  "strict-direct-external-endpoint",
+    "externalEndpoint":  "https://openclawroot.com/v1",
+    "testedBuild":  {
+                        "sourceZip":  "C:\\Users\\Administrator\\Downloads\\e-platform-windows-x64.zip",
+                        "installedExe":  "C:\\Program Files\\e-platform\\e-platform.exe",
+                        "installerName":  "e-platform Setup 1.0.0.exe",
+                        "installerReleaseDate":  "2026-06-17T06:34:14.481Z"
+                    },
+    "modelOverride":  {
+                          "initialAttempt":  "qwen3.7-plus",
+                          "initialAttemptOutcome":  "external endpoint returned HTTP 503 in about 650 ms",
+                          "rerunModel":  "gpt-image-2",
+                          "rerunReason":  "user requested rerun after probable upstream/model issue"
+                      },
+    "environment":  {
+                        "os":  "Windows",
+                        "exePath":  "C:\\Program Files\\e-platform\\e-platform.exe",
+                        "apiBase":  "http://127.0.0.1:3001",
+                        "appDataDir":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data",
+                        "imageDir":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images"
+                    },
+    "startedAt":  "2026-06-17T07:22:10.752Z",
+    "finishedAt":  "2026-06-17T07:25:42.845Z",
+    "uiSteps":  [
+                    "Settings: added temporary custom image provider at https://openclawroot.com/v1",
+                    "Settings/API: prepared temporary text LLM with MiniMax-M3-highspeed",
+                    "AI Generation: opened Natural Language mode in the installed Electron UI",
+                    "AI Generation: selected provider, set count to 2, and triggered generation",
+                    "After generation: verified loaded tiles, selected one tile, and matched files/API rows",
+                    "Navigation: returned to AI Generation and rechecked history visibility"
+                ],
+    "counts":  {
+                   "checksPassed":  22,
+                   "checksFailed":  1,
+                   "visibleLoadedImages":  2,
+                   "selectedTiles":  1,
+                   "generatedFiles":  2,
+                   "matchedApiRows":  2,
+                   "matchedVisibleImages":  2,
+                   "matchedHistoryImages":  0
+               },
+    "evidence":  {
+                     "screenshots":  {
+                                         "before":  "screenshot-before-generation.png",
+                                         "after":  "screenshot-after-generation.png",
+                                         "afterReturn":  "screenshot-after-return.png"
+                                     },
+                     "rawRunnerJson":  "image-generation-visible-acceptance-2026-06-17T07-22-10-751Z.json",
+                     "generatedImages":  [
+                                             {
+                                                 "file":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\35589cacba8d4c14.png",
+                                                 "bytes":  1336304,
+                                                 "format":  "png",
+                                                 "width":  1402,
+                                                 "height":  1122
+                                             },
+                                             {
+                                                 "file":  "C:\\Users\\Administrator\\AppData\\Roaming\\e-platform\\data\\images\\b853eb4ed08ec5de.png",
+                                                 "bytes":  1313499,
+                                                 "format":  "png",
+                                                 "width":  1254,
+                                                 "height":  1254
+                                             }
+                                         ],
+                     "generateRequests":  [
+                                              {
+                                                  "phase":  "request",
+                                                  "method":  "POST",
+                                                  "url":  "http://127.0.0.1:3001/api/images/generate-from-natural-language",
+                                                  "postData":  {
+                                                                   "description":  "鐢ㄦ埛鍙鎬ч獙鏀讹細鐧借壊闄剁摲椹厠鏉紝娴呯伆鑳屾櫙锛岃嚜鐒跺厜锛岀數鍟嗕富鍥撅紝涓讳綋瀹屾暣灞呬腑",
+                                                                   "providerConfig":  {
+                                                                                          "id":  "img_1781680938537_gun3",
+                                                                                          "name":  "visible-img-1781680935581",
+                                                                                          "type":  "api",
+                                                                                          "endpoint":  "https://openclawroot.com/v1",
+                                                                                          "apiKey":  "***",
+                                                                                          "model":  "gpt-image-2",
+                                                                                          "maxImages":  2,
+                                                                                          "defaultParams":  {
+
+                                                                                                            },
+                                                                                          "isDefault":  false
+                                                                                      },
+                                                                   "llmProviderId":  "visible_llm_1781680940040",
+                                                                   "count":  2,
+                                                                   "width":  1024,
+                                                                   "height":  1024
+                                                               },
+                                                  "at":  "2026-06-17T07:24:17.472Z"
+                                              },
+                                              {
+                                                  "phase":  "response",
+                                                  "status":  200,
+                                                  "url":  "http://127.0.0.1:3001/api/images/generate-from-natural-language",
+                                                  "body":  "{\"success\":true,\"data\":{\"mode\":\"text-to-image\",\"originalDescription\":\"鐢ㄦ埛鍙鎬ч獙鏀讹細鐧借壊闄剁摲椹厠鏉紝娴呯伆鑳屾櫙锛岃嚜鐒跺厜锛岀數鍟嗕富鍥撅紝涓讳綋瀹屾暣灞呬腑\",\"prompt\":\"A pristine white ceramic coffee mug, clean and minimal design, placed perfectly centered in the frame. Light gray seamless background with soft natural lighting from the side, creating gentle shadows and subtle highlights on the smooth ceramic surface. Professional e-commerce product photography style, sharp focus, high-end commercial look, ultra-sharp details, 4K resolution, photorealistic rendering, studio lighting setup, no people, no text, no logos, complete product visibility from top to bottom.\",\"attributes\":{\"subject\":\"white ceramic coffee mug\",\"style\":\"e-commerce product photography, commercial, photorealistic\",\"background\":\"light gray seamless backdrop\",\"lighting\":\"soft natural light, gentle side lighting, subtle shadows\",\"cameraAngle\":\"eye-level, perfectly centered, full product view\",\"extra\":[\"4K\",\"ultra-sharp\",\"high-end\",\"clean composition\",\"complete product visibility\",\"no people\",\"no logos\"]},\"llmProvider\":{\"id\":\"visible_llm_1781680940040\",\"name\":\"visible-llm-1781680940040\",\"model\":\"MiniMax-M3-highspeed\"},\"imageProvider\":\"visible-img-1781680935581\",\"im",
+                                                  "at":  "2026-06-17T07:25:18.721Z"
+                                              }
+                                          ],
+                     "imagePayloadComparison":  {
+                                                    "endpoint":  "https://openclawroot.com/v1/images/generations",
+                                                    "appEquivalent":  {
+                                                                          "name":  "app-equivalent",
+                                                                          "request":  {
+                                                                                          "endpoint":  "https://openclawroot.com/v1/images/generations",
+                                                                                          "headers":  {
+                                                                                                          "Authorization":  "Bearer ***",
+                                                                                                          "Content-Type":  "application/json"
+                                                                                                      },
+                                                                                          "payload":  {
+                                                                                                          "model":  "gpt-image-2",
+                                                                                                          "prompt":  "A single white ceramic mug centered in the frame, clean glossy porcelain surface, minimalist design without any text or logo, soft natural light from the left, light gray seamless studio background, e-commerce hero product shot, product photography, full subject visible with breathing space, sharp focus, ultra high definition, 4K, commercial photography, realistic texture, subtle soft shadow beneath the mug, clean composition, neutral color palette, no people, no hands, no faces",
+                                                                                                          "n":  2,
+                                                                                                          "width":  1024,
+                                                                                                          "height":  1024
+                                                                                                      }
+                                                                                      },
+                                                                          "status":  200,
+                                                                          "ok":  true,
+                                                                          "body":  {
+                                                                                       "created":  1781680964,
+                                                                                       "dataCount":  2,
+                                                                                       "firstItemKeys":  [
+                                                                                                             "url",
+                                                                                                             "revised_prompt"
+                                                                                                         ]
+                                                                                   }
+                                                                      },
+                                                    "minimal":  {
+                                                                    "name":  "manual-minimal",
+                                                                    "request":  {
+                                                                                    "endpoint":  "https://openclawroot.com/v1/images/generations",
+                                                                                    "headers":  {
+                                                                                                    "Authorization":  "Bearer ***",
+                                                                                                    "Content-Type":  "application/json"
+                                                                                                },
+                                                                                    "payload":  {
+                                                                                                    "model":  "gpt-image-2",
+                                                                                                    "prompt":  "A single white ceramic mug centered in the frame, clean glossy porcelain surface, minimalist design without any text or logo, soft natural light from the left, light gray seamless studio background, e-commerce hero product shot, product photography, full subject visible with breathing space, sharp focus, ultra high definition, 4K, commercial photography, realistic texture, subtle soft shadow beneath the mug, clean composition, neutral color palette, no people, no hands, no faces"
+                                                                                                }
+                                                                                },
+                                                                    "status":  200,
+                                                                    "ok":  true,
+                                                                    "body":  {
+                                                                                 "created":  1781681029,
+                                                                                 "dataCount":  1,
+                                                                                 "firstItemKeys":  [
+                                                                                                       "url",
+                                                                                                       "revised_prompt"
+                                                                                                   ]
+                                                                             }
+                                                                }
+                                                },
+                     "visibleImageMatches":  [
+                                                 {
+                                                     "index":  0,
+                                                     "srcKind":  "remote",
+                                                     "srcName":  "35589cacba8d4c14.png",
+                                                     "matchedByFileName":  true,
+                                                     "matchedByApiName":  true,
+                                                     "matchedByApiPath":  false,
+                                                     "matchedByLoadedRemote":  true,
+                                                     "matched":  true
+                                                 },
+                                                 {
+                                                     "index":  1,
+                                                     "srcKind":  "remote",
+                                                     "srcName":  "b853eb4ed08ec5de.png",
+                                                     "matchedByFileName":  true,
+                                                     "matchedByApiName":  true,
+                                                     "matchedByApiPath":  false,
+                                                     "matchedByLoadedRemote":  true,
+                                                     "matched":  true
+                                                 }
+                                             ],
+                     "historyImageMatches":  [
+
+                                             ],
+                     "cleanup":  "cleanup-checks.json",
+                     "backendProbe":  "external-backend-probe.json"
+                 },
+    "failures":  [
+                     {
+                         "name":  "generated images remain visible after returning to AI Generation",
+                         "extra":  {
+                                       "visibleLoadedHistoryImages":  0,
+                                       "matchedHistoryImages":  0,
+                                       "matches":  [
+
+                                                   ]
+                                   }
+                     }
+                 ],
+    "cleanup":  {
+                    "temporaryTextLlmDeleted":  true,
+                    "temporaryImageProviderDeleted":  true,
+                    "temporaryKeyFileDeleted":  true,
+                    "generatedImageFilesRemovedDirectly":  2,
+                    "apiCleanupAttempt":  "failed after backend closed; see cleanup-checks.json",
+                    "keyFileExistsAfter":  false
+                },
+    "riskReview":  {
+                       "security":  "No raw key stored in final report artifacts. Temporary key file was deleted. Direct file cleanup was limited to the resolved e-platform image directory.",
+                       "performance":  "gpt-image-2 rerun completed successfully within the runner window; the earlier qwen3.7-plus probe returned HTTP 503 quickly and should be treated as upstream availability, not payload incompatibility.",
+                       "bug":  "History visibility after returning to AI Generation still failed acceptance and remains a UI/state issue to investigate."
+                   }
+}
