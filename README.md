@@ -4,7 +4,7 @@
 
 ## 简介
 
-基于用户的**自然语言描述**（可选参考图），文本 LLM 自动转换为专业商品摄影 prompt → 喂给 AI 生图模型生成商品图 → 用户确认/编辑 → 一键发布到电商平台（拼多多、淘宝、京东、1688），形成完整的自动化上架工作流。
+基于用户的自然语言描述（可选参考图），文本 LLM 自动转换为专业商品摄影 prompt → 喂给 AI 生图模型生成商品图 → 用户确认/编辑 → 一键发布到电商平台（拼多多、淘宝、京东、1688），形成完整的自动化上架工作流。
 
 核心链路：
 
@@ -12,7 +12,7 @@
 用户大白话描述（例如"白色陶瓷马克杯，要拍出高级感"）
    │  + 可选参考图
    ▼
-文本 LLM（通义千问 / DeepSeek / OpenAI 等）→ 结构化电商 prompt
+文本 LLM（通义千问 / DeepSeek / OpenAI 等）→ 中文专业 prompt
    │
    ▼
 AI 生图模型（DALL-E / 通义万相 / 任意 OpenAI 兼容端点）
@@ -23,7 +23,7 @@ AI 生图模型（DALL-E / 通义万相 / 任意 OpenAI 兼容端点）
 
 ## 产品形态
 
-- **桌面客户端**（Electron + React + TypeScript），Windows 平台
+- 桌面客户端（Electron + React + TypeScript），Windows 平台
 - 本地数据存储（SQLite）
 - 多电商平台支持，按需扩展
 - AI 图片生成提供商可自定义（API / 本地模型均可）
@@ -121,7 +121,9 @@ e-platform/
 ├── resources/                # 应用资源
 │   └── icon.png
 ├── docs/
-│   └── USER_GUIDE.md         # 用户使用说明书
+│   ├── README.md             # 文档导航
+│   ├── USER_GUIDE.md         # 用户使用说明书
+│   └── codex-sync/           # Codex 同步规范
 └── scripts/
     └── test_providers.py     # 提供商连通性测试
 ```
@@ -145,20 +147,20 @@ Electron 打包后，数据目录位于 `%APPDATA%/e-platform/data/`。
 
 ### 架构说明
 
-- **开发模式**：Vite (:5173) + Express (:3001) + Electron 三者并行，Vite proxy 转发 `/api` 到后端
-- **生产模式**：Electron 启动时 fork Express 子进程（端口 3001），静态文件由 Express 直接服务
-- **配置**：`server/config.ts` 统一管理，支持热重载
+- 开发模式：Vite (:5173) + Express (:3001) + Electron 三者并行，Vite proxy 转发 `/api` 到后端
+- 生产模式：Electron 启动时 fork Express 子进程（端口 3001），静态文件由 Express 直接服务
+- 配置：`server/config.ts` 统一管理，支持热重载
 
 | 阶段 | 状态 | 说明 |
 |------|------|------|
 | 阶段一：项目骨架 + 核心 UI 框架 | ✅ 已完成 | Electron + React + TS + SQLite + Ant Design UI |
-| 阶段二：AI 图片生成引擎 | ✅ 已完成 | 多提供商接入 + Prompt 模板 + Sharp 图片处理 |
+| 阶段二：AI 图片生成引擎 | ✅ 已完成 | 多提供商接入 + Prompt 生成链路 + Sharp 图片处理 |
 | 阶段三：平台适配层 — 拼多多 | ✅ 已完成 | MD5 签名 + OAuth + 类目查询 + 图片上传 + 商品发布 |
 | 阶段四：完整工作流串联 | ✅ 已完成 | 最小闭环 |
 | 阶段五：批量模式 | ✅ 已完成 | 批量导入/生成/确认/发布 + 队列管理 + 失败重试 |
 | 阶段六：测试 & 打包发布 | ✅ 已完成 | TypeScript 编译/构建通过 + 原生模块重建 + 打包管线验证 + 提供商测试脚本 + 使用说明书 |
 | 阶段七：生产环境修复 | ✅ 已完成 | 统一配置系统 + Electron 后端集成 + 端口统一 + OAuth 回调 + 首次引导 |
-| 阶段八：Windows 安装包白屏修复 | ✅ 已完成 | Electron fork 子进程路径修正 + NODE_PATH 原生模块定位 + preload API 注入 + **file:// 协议替换为 HTTP** |
+| 阶段八：Windows 安装包白屏修复 | ✅ 已完成 | Electron fork 子进程路径修正 + NODE_PATH 原生模块定位 + preload API 注入 + file:// 协议替换为 HTTP |
 | 阶段九：图生图功能 | ✅ 已完成 | IImageProvider 扩展 generateFromImage + Wanx/CustomProvider 图生图实现 + 前端参考图上传 + Tab 切换 |
 | 阶段十：UI 全面重设计 | ✅ 已完成 | 工作站式布局 + 紫蓝渐变主题 + 三栏 AI 生成 + 分步发布表单 + 卡片仪表盘 |
 | 阶段十一：模型管理 + Prompt 优化 | ✅ 已完成 | 统一文本 LLM 管理入口 + 模型切换 + 大白话 → 专业 prompt 自动转换 |
@@ -176,279 +178,9 @@ Electron 打包后，数据目录位于 `%APPDATA%/e-platform/data/`。
 - [x] TypeScript 编译零错误，vite build 通过
 - [x] BUILD.md 构建与打包指南
 - [x] IImageProvider 统一接口（DALL-E 3 / 通义万相 / 自定义端点）
-- [x] Prompt 模板系统（10 个电商场景模板：服装/数码/家居/食品/通用）
 - [x] Sharp 图片处理服务（合规检查/缩放/裁剪/格式转换/自动压缩）
 - [x] 图片生成 API 路由（生成/合规检查/自动处理/图片管理/提供商验证）
-- [x] ImageGenerator 页面完整 UI（模板选择 → 主体填空 → 自动渲染 Prompt → 生成 → 图片网格预览 → 合规检查 → 历史浏览）
+- [x] ImageGenerator 页面完整 UI（自然语言 → prompt → 生成 → 图片网格预览 → 合规检查 → 历史浏览）
 - [x] DatabaseService 封装（图片/提供商/日志 CRUD）
 - [x] 前端 API 调用封装（src/services/api.ts）
 - [x] tsconfig @ 路径别名配置
-
-### 阶段四：完整工作流串联 ✅
-- [x] 数据库增强：products 表 draft_data 字段 + DraftService + Products CRUD + getLogs + exportData
-- [x] 数据库迁移：自动添加 draft_data 字段（ALTER TABLE，已存在字段忽略）
-- [x] 商品管理路由：POST/GET/PUT/DELETE /api/products（CRUD 完整）
-- [x] 草稿路由：POST/GET/DELETE /api/drafts/:id + GET /api/drafts（保存/加载/列表/删除）
-- [x] 操作日志路由：GET /api/logs（过滤+分页）+ GET /api/logs/publish-history
-- [x] 数据备份路由：POST /api/backup/export + /import + GET /api/backup/list
-- [x] 重试中间件：withRetry（指数退避 1s→2s→4s，网络错误自动重试 3 次）
-- [x] PDD upload/publish 端点接入重试机制
-- [x] Publish 页面改造：product_id 贯穿、自动保存草稿（防抖 2s）、草稿恢复、发布历史从日志加载、图片从数据库加载
-- [x] Dashboard 页面改造：实时统计（图片/发布/平台）、最近任务列表、最近发布记录
-- [x] 所有新端点 curl 验证通过
-- [x] TypeScript 编译零错误
-
-### 阶段三：平台适配层 — 拼多多 ✅
-- [x] IPlatformAdapter 统一接口定义
-
-### 阶段五：批量模式 ✅
-- [x] 数据库迁移：batch_tasks + batch_items 表，products.batch_task_id 字段
-- [x] xlsx (SheetJS) + multer 依赖安装
-- [x] 批量导入路由：POST /api/batch/import（Excel/CSV 解析、列映射、校验）
-- [x] 批量任务 CRUD 路由：GET/DELETE /api/batch/tasks/:id
-- [x] 批量生成引擎：server/services/batch-generator.ts
-  - 并发队列管理（maxConcurrency 1-10 可调）
-  - withRetry 自动重试（最多 3 次，指数退避）
-  - 单条生成：AI → 下载/保存 → 合规检查 → 创建商品+图片记录
-  - POST /api/batch/tasks/:id/generate + GET /api/batch/tasks/:id/status
-- [x] 批量发布服务：server/services/batch-publisher.ts
-  - 逐条发布到平台，1s 延迟防限流
-  - POST /api/batch/tasks/:id/publish
-- [x] 批量确认：POST /api/batch/tasks/:id/confirm
-- [x] 重试失败：POST /api/batch/tasks/:id/retry-failed（generate/publish）
-- [x] Zustand Store 扩展：BatchTask / BatchItem / ParsedItem 类型
-- [x] 前端 API 函数扩展：importBatch / fetchBatchTasks / startBatchGeneration / confirmBatch / startBatchPublish / retryFailed
-- [x] 批量任务页面完整实现：导入 → 生成 → 确认 → 发布 三步流程
-  - 任务列表（进度条、状态标签）
-  - 任务详情（统计面板、条目表格 + 图片预览）
-  - 自动轮询（2s 间隔）实时刷新进度
-- [x] TypeScript 编译零错误
-
-### 阶段六：测试 & 打包发布 ✅
-- [x] TypeScript 编译零验证通过
-- [x] vite build 前端构建通过
-- [x] @electron/rebuild 安装 + better-sqlite3 原生模块重建
-- [x] electron-builder.yml 优化（asarUnpack、extraResources、NSIS 配置）
-- [x] package.json scripts 完善（electron:rebuild / electron:package / electron:package:win / postinstall）
-- [x] 打包管线验证：`electron-builder --linux dir` 成功产出完整应用目录
-  - app.asar（110MB，React 前端 + Electron 主进程）
-  - app.asar.unpacked（better-sqlite3 + sharp 原生模块）
-  - server 目录完整打包
-- [x] Windows NSIS 构建文档（BUILD.md 补充一键构建流程）
-- [x] 提供商连通性测试脚本 `scripts/test_providers.py`
-- [x] 用户使用说明书 `docs/USER_GUIDE.md`
-
-> **注意**：服务器外网阻断导致 NSIS/deb/AppImage 无法生成安装包文件，
-> 但打包管线已完全验证。在 Windows 开发机上运行 `npm run electron:package:win` 即可一键生成 .exe 安装包。
-
-### 阶段八：Windows 安装包白屏修复 ✅
-
-#### 问题描述
-Windows 安装包（NSIS .exe）安装后启动，全屏白屏，无法渲染 UI。
-
-#### 根因分析
-经过多次迭代排查，定位到三个相互关联的问题：
-
-| # | 问题 | 影响 |
-|---|------|------|
-| 1 | `dist-server/index.js` 被打包进 `app.asar` | `fork()` 无法执行 asar 内的 JS 文件，后端无法启动 |
-| 2 | esbuild 编译时 `better-sqlite3` 和 `sharp` 标记为 `--external` | 这两个原生模块未被打包进 `dist-server/index.js`，需要运行时动态 `require()` |
-| 3 | fork 子进程未设置 `NODE_PATH` | Node.js 找不到 `app.asar.unpacked/node_modules/` 中的原生模块，后端启动崩溃 |
-| 4 | preload.ts 用 `global.__API_BASE_URL` 读主进程变量 | main 和 preload 是两个独立 Node.js 进程，global 不共享 |
-
-#### 修复方案
-
-**1. electron-builder.yml — 解包 + extraResources**
-```yaml
-# asarUnpack：原生模块必须解包
-asarUnpack:
-  - 'node_modules/better-sqlite3/**'
-  - 'node_modules/sharp/**'
-  # ... 其他原生模块
-
-# extraResources：dist-server 独立于 asar，路径 100% 确定
-extraResources:
-  - from: 'dist-server'
-    to: 'dist-server'
-    filter: ['**/*']
-```
-
-**2. electron/main.ts — 正确路径 + NODE_PATH**
-```typescript
-// 生产环境路径：extraResources 解压到 resources/dist-server/
-if (app.isPackaged) {
-  serverPath = join(process.resourcesPath, 'dist-server', 'index.js')
-}
-
-// fork 时设置 NODE_PATH，让子进程找到原生模块
-if (app.isPackaged) {
-  envVars.NODE_PATH = join(process.resourcesPath, 'app.asar.unpacked', 'node_modules')
-}
-```
-
-**3. electron/preload.ts — 用环境变量传递 API 地址**
-```typescript
-// 主进程在 createWindow() 之前设置 process.env.API_BASE_URL
-// 渲染进程继承主进程环境，preload 可读取
-getApiBaseUrl: () => {
-  return process.env.API_BASE_URL || 'http://127.0.0.1:3001'
-}
-```
-
-#### CI 构建历史
-| 构建 | Commit | 修复内容 | 结果 |
-|------|--------|----------|------|
-| RUN14 | 949fb5b | preload contextBridge 注入 API_BASE_URL | 白屏依旧 |
-| RUN16 | b1e3899 | dist-server asarUnpack + 路径修正 | 白屏依旧 |
-| RUN17+ | 65239dd | NODE_PATH 设置 + extraResources | 白屏依旧 |
-| RUN18+ | 5a62b17 | sharp 嵌套 @img asarUnpack + NODE_PATH 双路径覆盖 | 白屏依旧 |
-| RUN19+ | bb17b54 | NODE_PATH 增加 asar/node_modules 路径，修复 detect-libc 缺失 | 白屏依旧 |
-| RUN21 | ebc429e | 添加 unpacked artifact 支持直接部署 | 后端正常，前端白屏 |
-| RUN22 | eb94a99 | loadFile(file://) 改为 loadURL(http://127.0.0.1:port) | 后端启动但 404 |
-| RUN23 | 4390b9f | **传递 APP_ROOT 给 fork 子进程，修复 server 用 process.cwd() 找不到 dist/ → 404** | 待验证 |
-
-#### 关键踩坑
-1. **file:// 协议兼容性** — Electron 通过 `loadFile()` 以 `file://` 协议加载前端时，某些 JS/CSS 行为与 HTTP 不同，导致前端渲染为白屏。后端已通过 `express.static(distPath)` 在 HTTP 根路径服务前端，改为 `loadURL(http://127.0.0.1:${port})` 后与浏览器行为一致。
-2. **asarUnpack 不可靠** — 不同平台行为有差异，改用 `extraResources` 更确定
-2. **global 不跨进程** — main process 的 `global` 和 preload 的 `global` 是两个独立对象
-3. **process.env 继承** — 渲染进程在创建时继承主进程的环境变量，所以 `createWindow()` 之前设置即可
-4. **esbuild --external** — 原生模块标记 external 后，必须在运行时通过 NODE_PATH 或正确路径才能找到
-5. **sharp 嵌套 @img 依赖** — sharp 的 `@img/sharp-win32-x64` 是嵌套在 `sharp/node_modules/@img/` 下的，electron-builder 的 asarUnpack glob `node_modules/@img/**` 只匹配**顶层**，不会匹配嵌套依赖。必须显式加 `sharp/node_modules/@img/**`。同时 NODE_PATH 需要覆盖两层路径（顶层 + sharp 嵌套）
-6. **NODE_PATH 不能只指向 unpacked** — `detect-libc` 等纯 JS 依赖在 asar 内，NODE_PATH 必须同时包含 `app.asar/node_modules`，否则 fork 子进程找不到这些模块
-7. **process.cwd() 在 fork 子进程中不可靠** — Windows 上 fork 的 Node.js 子进程 cwd 通常是系统目录（如 `C:\Windows\System32`），`server/index.ts` 用 `process.cwd()` 解析 `dist/` 和 `data/` 路径全部指向错误位置 → **404**。必须通过环境变量（APP_ROOT）显式传递正确路径。
-
-#### 诊断方法论（阶段八新增）
-- **WinRM 远程执行** — 通过 PowerShell WinRM (5985) 直接在 Windows 机器上运行命令，捕获 Electron fork 子进程的 stdout/stderr
-- **像素级白屏分析** — 截图后用 PIL 计算白色像素占比，区分"加载缓慢"和"真正白屏"
-- **日志驱动，不瞎猜** — 所有修复都基于实际错误堆栈，不再靠推测
-
-详见 [BUILD.md](BUILD.md) — 包含环境要求、开发模式、NSIS 打包流程、sharp 跨平台注意事项、故障排查。
-详见 [docs/USER_GUIDE.md](docs/USER_GUIDE.md) — 完整用户使用说明书。
-
-### 阶段九：图生图功能 ✅
-
-### 阶段十：UI 全面重设计 ✅
-
-**设计理念**：从默认管理面板转型为**工作流驱动的商品工作站**。
-
-**核心改动**：
-
-| 改动 | 说明 |
-|------|------|
-| 侧边栏分组 | 导航项分为「生产」「发布」「管理」三组，视觉层次更清晰 |
-| 全局工作流 | 顶部展示「生成 → 编辑 → 发布 → 上架」进度指示器 |
-| 仪表盘 | 卡片式操作中心，3 个快捷操作入口 + 统计数据 + 活动流 |
-| AI 生成页 | 三栏沉浸式布局：左侧模板列表 / 中间编辑区 / 右侧结果预览 |
-| 发布页面 | 4 步分步表单：选择店铺 → 商品信息 → 选择图片 → 确认发布 |
-| 视觉主题 | 紫蓝渐变 `#6366f1 → #8b5cf6`，圆角 12px，柔和阴影 |
-
-#### 需求背景
-用户在实际使用中难以精确描述想要的图片效果，需要上传参考图（模板/示例图），配合简短文字描述，让 AI 基于参考图生成新图。
-
-#### 实现内容
-- **接口扩展**：`IImageProvider` 新增可选方法 `generateFromImage()` + `ImageToImageOptions` 类型
-- **WanxProvider**：对接 DashScope image2image 异步 API，支持 base64 参考图输入
-- **CustomProvider**：灵活传递 reference image 参数，兼容多种自定义图生图端点
-- **后端路由**：`POST /api/images/generate-from-image`，multer 上传图片 + base64 转换
-- **前端 UI**：ImageGenerator 页面新增「文生图 / 图生图」Tab 切换 + 拖拽上传参考图区
-- **数据库**：图片 type 新增 `'image-to-image'` 记录，支持生成溯源
-
-#### 验收标准
-- [x] 用户能上传图片（拖拽 + 预览）
-- [x] 输入描述后能生成新图
-- [x] 原有文生图功能完全不受影响
-- [x] TypeScript 编译零错误
-- [x] 所有改动已 git push，CI 构建通过
-
-### 阶段十一：模型管理 + Prompt 优化 ✅
-
-**设计理念**：一处配置文本 LLM，处处可选模型切换，大白话也能生成专业 prompt。
-
-**核心改动**：
-
-| 改动 | 说明 |
-|------|------|
-| Store 扩展 | 新增 `TextModelConfig` 类型 + textModels CRUD 状态管理 |
-| 后端优化接口 | `POST /api/images/optimize-prompt`，调用 OpenAI 兼容 chat completions API |
-| 后端模型接口 | `POST /api/images/providers/models` 完善，支持动态获取提供商模型列表 |
-| Settings 文本 LLM | 新增「文本 LLM」Tab，内置千问/DeepSeek/OpenAI 模板 + 自定义添加 |
-| AI 描述区优化 | prompt textarea 旁加文本 LLM 选择 + 「AI 优化」按钮，点击后 loading → 填回结果 |
-| 模型切换 | 提供商 Select 旁加模型 Select，选中后覆盖 providerConfig.model 传给后端 |
-| 前端 API | 新增 `fetchProviderModels()` + `optimizePrompt()` 函数 |
-
-#### 内置文本 LLM 模板
-| 名称 | 端点 | 默认模型 |
-|------|------|--------|
-| 通义千问 | `https://dashscope.aliyuncs.com/compatible-mode/v1` | qwen-plus |
-| DeepSeek | `https://api.deepseek.com/v1` | deepseek-chat |
-| OpenAI GPT | `https://api.openai.com/v1` | gpt-4o-mini |
-
-#### 验收标准
-- [x] Settings 页能添加/删除文本 LLM
-- [x] ImageGenerator 页 prompt 区旁能选择文本 LLM 并点击优化
-- [x] 大白话描述 → 点击 → 得到电商场景专业 prompt
-- [x] 文生图/图生图都能切换模型
-- [x] TypeScript 编译零错误
-- [x] 所有改动已 git push
-
-### 阶段十二：自然语言一站式生图 + LLM 持久化 ✅
-
-**目标**：把"自然语言 → 专业 prompt → 生图"做成开箱即用的一条链路，并且让用户可以**自定义任意生图模型和 LLM 模型**。
-
-#### 新增能力
-
-- **文本 LLM 服务化（OpenAI 兼容协议）**
-  - 一份代码同时跑通 OpenAI、通义千问 DashScope-OpenAI 兼容、DeepSeek、智谱、月之暗面、本地 vLLM/Ollama
-  - 端点容错：用户填 `https://api.x` / `https://api.x/v1` / `https://api.x/v1/chat/completions` 都能正确解析
-- **LLM 配置持久化**
-  - DB 新增 `llm_providers` 表（id / name / endpoint / api_key / model / temperature / max_tokens / is_default）
-  - 取代 zustand 内存状态，重启不丢
-- **DALL-E 图生图补齐**
-  - 走 OpenAI `images/edits` 端点，参考图自动支持本地路径 / data URI / 远程 URL 三种形式
-- **通义万相图生图体验改善**
-  - 取消"必须是 base64 或 URL"的硬限制，本地文件直接读成 data URI 自动转
-- **一站式 API**
-  - `POST /api/images/generate-from-natural-language`
-  - 自动判断有无参考图，决定走文生图还是图生图
-- **前端"💬 自然语言"模式**
-  - ImageGenerator 页加第三个 Tab，独立的描述输入 + LLM 提供商选择 + 可选参考图
-
-#### 新增接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/llm/` | 列出所有文本 LLM 提供商 |
-| GET | `/api/llm/default` | 取默认 LLM |
-| POST | `/api/llm/` | 新建/更新 LLM 提供商 |
-| PATCH | `/api/llm/:id/default` | 设为默认 |
-| DELETE | `/api/llm/:id` | 删除 LLM 提供商 |
-| POST | `/api/llm/prompt-from-text` | 自然语言 → 结构化 prompt（不直接生图） |
-| POST | `/api/images/generate-from-natural-language` | 自然语言 + 可选参考图 → LLM 出 prompt → 生图 |
-
-#### 涉及文件
-
-- 新增：`server/services/llm/{types,openai-compatible,provider,prompt-engineer,index}.ts`
-- 新增：`server/routes/llm.ts`
-- 修改：`server/services/image-gen/dalle.ts`（加 `generateFromImage`）
-- 修改：`server/services/image-gen/wanx.ts`（参考图三种形式自动适配）
-- 修改：`server/services/database.ts`（`llm_providers` 表 + 6 个 CRUD）
-- 修改：`server/routes/images.ts`（一站式路由）
-- 修改：`server/index.ts`（挂载 `/api/llm`）
-- 修改：`src/services/api.ts`（LLM CRUD + `generateFromNaturalLanguage`）
-- 修改：`src/pages/ImageGenerator/index.tsx`（新增"自然语言"模式）
-
-#### 验收标准
-- [x] 用户能在「设置」中自定义任意 OpenAI 兼容 LLM 端点
-- [x] 用户能在「AI 生成 → 自然语言」模式下输入大白话生成商品图
-- [x] DALL-E、通义万相、自定义提供商三家都支持图生图
-- [x] LLM 配置写入 SQLite，重启后保留
-- [x] TypeScript 编译零错误（前端 + 后端 + Electron）
-- [x] vite build 通过
-
-## 配置说明
-
-首次运行前需配置 AI 图片生成提供商和电商平台凭据，可通过应用内设置面板完成，无需手动编辑配置文件。
-
-## 许可证
-
-MIT
