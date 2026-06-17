@@ -32,6 +32,13 @@ function getErrorMessage(err: any, fallback: string) {
   return err.response?.data?.error || err.message || fallback
 }
 
+function getHistoryImageUrl(img: any) {
+  if (img.url) return img.url
+  if (img.filename) return `/images/${img.filename}`
+  if (img.path) return `file://${img.path}`
+  return ''
+}
+
 export default function ImageGeneratorPage() {
   const { providers } = useAppStore()
 
@@ -599,13 +606,14 @@ export default function ImageGeneratorPage() {
           <h5 style={{ marginTop: 16 }}>📜 历史记录 ({historyImages.length})</h5>
           {historyImages.length > 0 ? (
             <div className="hg">
-              {historyImages.slice(0, 12).map((img: any) => (
-                <div key={img.filename} className="ht" style={{ position: 'relative', overflow: 'hidden', borderRadius: 4 }}>
+              {historyImages.slice(0, 12).map((img: any) => {
+                const imageUrl = getHistoryImageUrl(img)
+                return <div key={img.filename} className="ht" style={{ position: 'relative', overflow: 'hidden', borderRadius: 4 }}>
                   <Image
-                    src={`file://${img.path}`}
+                    src={imageUrl}
                     width="100%" height="100%"
                     style={{ objectFit: 'cover' }}
-                    preview={{ src: `file://${img.path}` }}
+                    preview={{ src: imageUrl }}
                   />
                   <Button
                     size="small" danger type="text"
@@ -614,7 +622,7 @@ export default function ImageGeneratorPage() {
                     onClick={() => handleDelete(img.filename)}
                   />
                 </div>
-              ))}
+              })}
             </div>
           ) : (
             <p style={{ fontSize: 11, color: '#94a3b8' }}>暂无历史记录</p>
