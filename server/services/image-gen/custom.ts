@@ -34,53 +34,10 @@ export class CustomProvider implements IImageProvider {
     count: number,
     options?: GenerationOptions
   ): Promise<ImageGenerationResponse> {
-    const payload = {
-      model: this.model,
-      prompt,
-      n: count,
-      ...this.defaultParams,
-      ...options,
-    }
+    const payloads = buildTextGenerationPayloads(this.model, prompt, count, this.defaultParams, options)
+    const responses = await Promise.all(payloads.map((payload) => this.postGeneration(payload)))
 
-    const response = await axios.post(this.endpoint, payload, {
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      timeout: 120000,
-    })
-
-    // 尝试解析不同格式的响应
-    const data = response.data
-
-    // OpenAI 格式: { data: [{ url, b64_json }] }
-    if (Array.isArray(data.data)) {
-      return {
-        created: data.created || Math.floor(Date.now() / 1000),
-        images: data.data.map((item: { url?: string; b64_json?: string }) => ({
-          url: item.url,
-          base64: item.b64_json,
-        })),
-      }
-    }
-
-    // 直接返回 images 数组
-    if (Array.isArray(data.images)) {
-      return {
-        created: data.created || Math.floor(Date.now() / 1000),
-        images: normalizeImages(data.images),
-      }
-    }
-
-    // 单个 url 字段
-    if (data.url) {
-      return {
-        created: data.created || Math.floor(Date.now() / 1000),
-        images: [{ url: data.url }],
-      }
-    }
-
-    throw new Error(`无法解析自定义提供商的响应格式: ${JSON.stringify(data).slice(0, 500)}`)
+    return mergeResponses(responses)
   }
 
   async getModels(): Promise<string[]> {
@@ -155,6 +112,90 @@ export class CustomProvider implements IImageProvider {
     }
 
     throw new Error(`CustomProvider 图生图响应无法解析: ${JSON.stringify(data).slice(0, 500)}`)
+  }
+
+  private async postGeneration(payload: Record<string, unknown>): Promise<ImageGenerationResponse> {
+    const response = await axios.post(this.endpoint, payload, {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      timeout: 120000,
+    })
+
+    return parseGenerationResponse(response.data, '无法解析自定义提供商的响应格式')
+  }
+}
+
+function buildTextGenerationPayloads(
+  model: string,
+  prompt: string,
+  count: number,
+  defaultParams: Record<string, unknown>,
+  options?: GenerationOptions
+): Array<Record<string, unknown>> {
+  if (isMinimalOpenAiImageModel(model)) {
+    const explicitCount = hasAnyKey(defaultParams, ['n', 'count'])
+    const requestCount = explicitCount ? 1 : Math.max(1, count)
+    return Array.from({ length: requestCount }, () => ({
+      model,
+      prompt,
+      ...defaultParams,
+    }))
+  }
+
+  return [{
+    model,
+    prompt,
+    n: count,
+    ...defaultParams,
+    ...options,
+  }]
+}
+
+function isMinimalOpenAiImageModel(model: string): boolean {
+  return /^gpt-image(?:-|$)/i.test(model)
+}
+
+function hasAnyKey(source: Record<string, unknown>, keys: string[]): boolean {
+  return keys.some((key) => Object.prototype.hasOwnProperty.call(source, key))
+}
+
+function parseGenerationResponse(data: any, errorPrefix: string): ImageGenerationResponse {
+  // OpenAI 格式: { data: [{ url, b64_json }] }
+  if (Array.isArray(data.data)) {
+    return {
+      created: data.created || Math.floor(Date.now() / 1000),
+      images: data.data.map((item: { url?: string; b64_json?: string }) => ({
+        url: item.url,
+        base64: item.b64_json,
+      })),
+    }
+  }
+
+  // 直接返回 images 数组
+  if (Array.isArray(data.images)) {
+    return {
+      created: data.created || Math.floor(Date.now() / 1000),
+      images: normalizeImages(data.images),
+    }
+  }
+
+  // 单个 url 字段
+  if (data.url) {
+    return {
+      created: data.created || Math.floor(Date.now() / 1000),
+      images: [{ url: data.url }],
+    }
+  }
+
+  throw new Error(`${errorPrefix}: ${JSON.stringify(data).slice(0, 500)}`)
+}
+
+function mergeResponses(responses: ImageGenerationResponse[]): ImageGenerationResponse {
+  return {
+    created: responses[0]?.created || Math.floor(Date.now() / 1000),
+    images: responses.flatMap((response) => response.images),
   }
 }
 
