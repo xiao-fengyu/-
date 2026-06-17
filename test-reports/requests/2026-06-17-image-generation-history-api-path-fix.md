@@ -1,7 +1,7 @@
 # Test Request
 
 Task ID: 2026-06-17-image-generation-history-api-path-fix
-Commit: 5c83995
+Commit: 69dfd8d
 Target: Windows UI
 Goal: Verify that generated images remain visible in AI Generation history after navigating away and returning.
 
