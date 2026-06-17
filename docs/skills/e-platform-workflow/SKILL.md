@@ -21,6 +21,8 @@ description: 当处理 e-platform 项目改动、测试流水线、Windows 真�
 
 不要继续沿用 `TEST-CHECKLIST.md` 中已经过期的假设。特别是：内置模型/提供商快速添加模板已经删除；当前 Settings 行为应只保留用户自定义配置入口，除非用户明确要求恢复。
 
+跨本机开发 Codex 与 Windows 测试 Codex 的同步规范见 `docs/codex-sync/README.md`。每轮开发完成后，除代码改动外，还必须按该规范提交本轮记忆摘要和测试任务单。
+
 ## 文件编辑规则
 
 - 改动范围必须贴合用户目标，不做无关重构。
@@ -92,7 +94,23 @@ description: 当处理 e-platform 项目改动、测试流水线、Windows 真�
 
 ## Windows E2E 流程
 
-验证 Windows 安装版时：
+Windows 真机 UI 验证默认采用“本机 Codex 开发 + Windows Codex 手动执行测试”的协作流程。不要默认从本机通过 SSH/SCP 遥控 Windows 执行 UI 测试；只有用户明确要求时，才使用 SSH runner 方案。
+
+本机 Codex 职责：
+
+1. 完成开发、代码审查、本地最小验证和 GitHub 推送。
+2. 在 `test-reports/requests/` 写测试任务单，说明 commit、目标、步骤、验收标准和产物要求。
+3. 提醒用户在 Windows 测试机的 Codex 中手动触发该任务。
+4. 等 Windows Codex 写回 `test-reports/runs/<任务名>/` 后，读取报告、截图和 JSON 结果，再判断是否需要继续修复。
+
+Windows Codex 职责：
+
+1. 读取 `test-reports/requests/<任务名>.md`。
+2. 在 Windows 桌面环境中执行真实 UI 测试。
+3. 生成截图、日志、报告 JSON 或 Markdown。
+4. 将测试产物写入 `test-reports/runs/<任务名>-windows/`，供本机 Codex 拉取或读取。
+
+验证 Windows 安装版时，Windows Codex 应执行：
 
 1. 构建或获取最新 GitHub Actions artifact。
 2. 在 Windows 测试机安装或重装应用。
@@ -101,7 +119,7 @@ description: 当处理 e-platform 项目改动、测试流水线、Windows 真�
 5. 驱动相关 UI 路径。
 6. 从 `%APPDATA%/e-platform/data/` 和后端 API 校验真实结果。
 7. 清理临时 provider、LLM 配置、key 文件、生成测试数据和 runner 文件。
-8. 在文件系统允许时，将脱敏报告归档到 `/data/e-platform/test-reports/<日期或运行名>/`。
+8. 在文件系统允许时，将脱敏报告归档到 `test-reports/runs/<日期或运行名>-windows/`。
 
 已知 Windows 环境信息来自 memory：
 
@@ -111,6 +129,38 @@ description: 当处理 e-platform 项目改动、测试流水线、Windows 真�
 - 测试工作目录：`C:\eplatform-test\`。
 
 不要打印或提交凭据。如果使用 key 文件，必须确认清理完成；报告中只能保留脱敏后的模型名、base URL 等信息。
+
+### 测试任务文件格式
+
+本机 Codex 创建测试任务时，使用以下最小结构：
+
+```md
+# Test Request
+
+Task ID:
+Commit:
+Target: Windows UI
+Goal:
+Steps:
+Acceptance Criteria:
+Artifacts Required:
+Notes:
+```
+
+Windows Codex 交付测试结果时，使用以下最小结构：
+
+```md
+# Test Result
+
+Task ID:
+Commit:
+Status: pass/fail/blocked
+Executed Steps:
+Artifacts:
+Evidence:
+Failures:
+Self-check:
+```
 
 ## 报告要求
 
@@ -132,8 +182,10 @@ description: 当处理 e-platform 项目改动、测试流水线、Windows 真�
 1. 查看 `git status`，识别无关改动。
 2. 确认最终 diff 只包含预期文件。
 3. 确认门禁和真实测试完成；如果有阻塞，必须明确记录。
-4. commit 信息说明用户可见行为变化。
-5. 审查通过后再推送目标分支，通常是 `main`。
+4. 确认已提交 `docs/codex-sync/memory-summaries/` 中的本轮记忆摘要；如无新增长期记忆，摘要中必须明确写“本轮无新增长期记忆”。
+5. 确认已提交 `test-reports/requests/` 中的本轮测试任务单；如不需要 Windows 真机测试，任务单中必须说明原因和替代验证方式。
+6. commit 信息说明用户可见行为变化。
+7. 审查通过后再推送目标分支，通常是 `main`。
 
 ## 停止条件
 
