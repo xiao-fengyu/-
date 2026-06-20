@@ -170,7 +170,7 @@ export default function PublishPage() {
   // 加载图片列表
   const loadAvailableImages = useCallback(async () => {
     try {
-      const data = await api<{ success: boolean; data: ImageRecord[] }>('/api/images')
+      const data = await api<{ success: boolean; data: ImageRecord[] }>('/api/images/images')
       if (data.success) {
         setAvailableImages(data.data)
       }

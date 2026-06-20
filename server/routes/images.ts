@@ -487,7 +487,19 @@ router.post('/convert', async (req, res) => {
 // ============================================================
 
 /** 获取已生成的图片列表 */
+/** 列出所有生成的图片（数据库记录格式） */
 router.get('/images', (_req, res) => {
+  try {
+    const db = new DatabaseService()
+    const records = db.getImages() as Array<Record<string, unknown>>
+    res.json({ success: true, data: records })
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message })
+  }
+})
+
+/** 列出所有本地图片文件（文件系统格式，已弃用，改用 /api/images/images） */
+router.get('/files', (_req, res) => {
   try {
     if (!fs.existsSync(DATA_DIR)) {
       return res.json({ success: true, data: { images: [] } })
