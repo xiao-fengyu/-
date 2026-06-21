@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Modal } from 'antd'
+import { ConfigProvider, Modal, theme } from 'antd'
 import AppLayout from './components/Layout/AppLayout'
 import { useAppStore } from './store'
 
@@ -21,7 +21,7 @@ function App() {
   }
 
   return (
-    <>
+    <ConfigProvider theme={{ algorithm: theme.darkAlgorithm, token: { colorPrimary: '#fff', borderRadius: 8, colorBgContainer: '#111111', colorBgElevated: '#161616', colorBorder: 'rgba(255,255,255,.1)', colorText: '#ededed', colorTextSecondary: '#888', fontFamily: "Inter, -apple-system, sans-serif" } }}>
       <Modal
         title="👋 欢迎使用 e-platform"
         open={firstRun}
@@ -40,7 +40,7 @@ function App() {
         <p>如需连接电商平台，请在设置中添加平台凭据。</p>
       </Modal>
       <AppLayout />
-    </>
+    </ConfigProvider>
   )
 }
 

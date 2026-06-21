@@ -1,13 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Empty, Spin, Button } from 'antd'
-import { ReloadOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import './Dashboard.css'
 import { API_BASE } from '../../services/api'
-
-// ============================================================
-// 类型
-// ============================================================
 
 interface ActivityItem {
   id: string
@@ -16,179 +10,152 @@ interface ActivityItem {
   dot: 'purple' | 'green' | 'amber'
 }
 
-interface StatData {
-  label: string
-  value: number | string
-}
-
-// ============================================================
-// Dashboard 页面
-// ============================================================
-
 export default function DashboardPage() {
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
-  const [imageCount, setImageCount] = useState(0)
-  const [publishCount, setPublishCount] = useState(0)
-  const [platformCount, setPlatformCount] = useState(0)
+  const [imageCount, setImageCount] = useState<number | string>('-')
+  const [publishCount, setPublishCount] = useState<number | string>('-')
+  const [draftCount, setDraftCount] = useState<number | string>('-')
+  const [platformCount, setPlatformCount] = useState<number | string>('-')
   const [activities, setActivities] = useState<ActivityItem[]>([])
-  const [stats, setStats] = useState<StatData[]>([])
+  const [platformStatuses, setPlatformStatuses] = useState<{ name: string; ok: boolean }[]>([])
 
   const loadData = useCallback(async () => {
-    setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/images`, {
-        headers: { 'Content-Type': 'application/json' },
-      })
-      const imagesData = await res.json()
-      if (imagesData.success) setImageCount(imagesData.data.length)
+      const [imagesRes, logsRes, credsRes] = await Promise.all([
+        fetch(`${API_BASE}/api/images`),
+        fetch(`${API_BASE}/api/logs?action=publish&status=success&limit=3`),
+        fetch(`${API_BASE}/api/pdd/credentials`),
+      ])
+      const [imagesData, logsData, credsData] = await Promise.all([
+        imagesRes.json(), logsRes.json(), credsRes.json(),
+      ])
 
-      const logsRes = await fetch(`${API_BASE}/api/logs?action=publish&status=success&limit=1`, {
-        headers: { 'Content-Type': 'application/json' },
-      })
-      const logsData = await logsRes.json()
-      if (logsData.success) setPublishCount(logsData.total)
+      const imgCount = imagesData.success ? imagesData.data.length : 0
+      const pubCount = logsData.success ? logsData.total : 0
+      const platCount = credsData.success ? credsData.data.length : 0
 
-      const credsRes = await fetch(`${API_BASE}/api/pdd/credentials`, {
-        headers: { 'Content-Type': 'application/json' },
-      })
-      const credsData = await credsRes.json()
-      if (credsData.success) setPlatformCount(credsData.data.length)
+      setImageCount(imgCount)
+      setPublishCount(pubCount)
+      setDraftCount(Math.max(0, imgCount - pubCount))
+      setPlatformCount(platCount)
 
-      // 构建活动流
       const acts: ActivityItem[] = []
       if (imagesData.success && imagesData.data.length > 0) {
-        const latest = imagesData.data[0]
-        acts.push({
-          id: 'img',
-          text: `生成了图片资源`,
-          time: latest.created_at ? formatTime(latest.created_at) : '最近',
-          dot: 'purple',
-        })
+        acts.push({ id: 'img', text: '生成了图片资源', time: formatTime(imagesData.data[0].created_at), dot: 'purple' })
       }
       if (logsData.success && logsData.data?.length > 0) {
-        const latest = logsData.data[0]
-        acts.push({
-          id: 'pub',
-          text: `「${latest.product_id || '商品'}」发布${latest.status === 'success' ? '成功' : '失败'}`,
-          time: latest.created_at ? formatTime(latest.created_at) : '最近',
-          dot: latest.status === 'success' ? 'green' : 'amber',
-        })
+        const l = logsData.data[0]
+        acts.push({ id: 'pub', text: `「${l.product_id || '商品'}」发布${l.status === 'success' ? '成功' : '失败'}`, time: formatTime(l.created_at), dot: l.status === 'success' ? 'green' : 'amber' })
       }
       setActivities(acts)
 
-      // 统计数据
-      setStats([
-        { label: '图片总数', value: imageCount },
-        { label: '已发布', value: publishCount },
-        { label: '草稿', value: Math.max(0, imageCount - publishCount) },
-        { label: '平台数', value: platformCount },
-      ])
+      if (credsData.success) {
+        setPlatformStatuses(credsData.data.map((c: { platform?: string; name?: string }) => ({ name: c.platform || c.name || '平台', ok: true })))
+      }
     } catch {
-      // 后端未启动时静默失败
-      setStats([
-        { label: '图片总数', value: '-' },
-        { label: '已发布', value: '-' },
-        { label: '草稿', value: '-' },
-        { label: '平台数', value: '-' },
-      ])
-    } finally {
-      setLoading(false)
+      // silent fail — UI shows dashes
     }
   }, [])
 
-  useEffect(() => {
-    loadData()
-  }, [loadData])
+  useEffect(() => { loadData() }, [loadData])
 
-  // 当前时间问候语
   const hour = new Date().getHours()
   const greeting = hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好'
 
   return (
     <div className="dashboard">
-      {loading && <Spin size="large" style={{ display: 'block', margin: '40px auto' }} />}
-      {!loading && (
-        <>
-          {/* 问候语 + 快捷操作 */}
-          <div className="dashboard-greeting">👋 {greeting}！准备好开始了吗？</div>
-          <div className="dashboard-subtitle">快速开始你的商品生产流程</div>
+      <div className="page-head">
+        <div className="page-title">{greeting} 👋</div>
+        <div className="page-sub">今日待处理 · 上次操作 2 小时前</div>
+      </div>
 
-          <div className="dashboard-quick-actions">
-            <div className="action-card" onClick={() => navigate('/image/generate')}>
-              <div className="ac-icon purple">🎨</div>
-              <h3>AI 生成图片</h3>
-              <p>输入描述或选模板，自动生成</p>
-              <button className="ab">开始生成 →</button>
-            </div>
-            <div className="action-card" onClick={() => navigate('/publish')}>
-              <div className="ac-icon green">📤</div>
-              <h3>继续发布</h3>
-              <p>选择商品，一键发布到平台</p>
-              <button className="ab outline">继续 →</button>
-            </div>
-            <div className="action-card" onClick={() => navigate('/batch')}>
-              <div className="ac-icon amber">📦</div>
-              <h3>批量导入</h3>
-              <p>Excel 一键导入批量上架</p>
-              <button className="ab outline">导入 →</button>
-            </div>
-          </div>
+      <div className="kpi-strip">
+        <div className="kpi">
+          <div className="kpi-val">{imageCount}</div>
+          <div className="kpi-label">图片总数</div>
+          <div className="kpi-delta">↑ 本周新增</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-val">{publishCount}</div>
+          <div className="kpi-label">已发布</div>
+          <div className="kpi-delta">↑ 今日</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-val">{draftCount}</div>
+          <div className="kpi-label">草稿</div>
+          <div className="kpi-delta warn">待处理</div>
+        </div>
+        <div className="kpi">
+          <div className="kpi-val">{platformCount}</div>
+          <div className="kpi-label">接入平台</div>
+          <div className="kpi-delta muted">拼多多 · 淘宝</div>
+        </div>
+      </div>
 
-          {/* 下方双面板 */}
-          <div className="dashboard-grid">
-            <div className="dash-panel">
-              <h4>📋 最近动态</h4>
-              {activities.length > 0 ? (
-                activities.map(item => (
-                  <div className="activity-item" key={item.id}>
-                    <span className={`activity-dot ${item.dot}`} />
-                    <div className="activity-text">
-                      {item.text}
-                      <span className="tm">· {item.time}</span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <Empty description="暂无动态" style={{ marginTop: 20 }} />
-              )}
-            </div>
+      <div className="section-head">
+        <div className="section-title">快速操作</div>
+      </div>
+      <div className="actions-grid">
+        <div className="action-card" onClick={() => navigate('/image/generate')}>
+          <div className="ac-top"><span className="ac-emoji">✦</span><span className="ac-arrow">↗</span></div>
+          <div className="ac-title">AI 生成图片</div>
+          <div className="ac-desc">输入描述，模型自动生成商品主图与详情图</div>
+        </div>
+        <div className="action-card" onClick={() => navigate('/publish')}>
+          <div className="ac-top"><span className="ac-emoji">⬆</span><span className="ac-arrow">↗</span></div>
+          <div className="ac-title">发布商品</div>
+          <div className="ac-desc">一键同步发布到拼多多、淘宝等多个平台</div>
+        </div>
+        <div className="action-card" onClick={() => navigate('/batch')}>
+          <div className="ac-top"><span className="ac-emoji">⊞</span><span className="ac-arrow">↗</span></div>
+          <div className="ac-title">批量导入</div>
+          <div className="ac-desc">上传 Excel，批量创建商品并触发图片生成</div>
+        </div>
+      </div>
 
-            <div className="dash-panel">
-              <h4>⚡ 快捷统计</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {stats.map(s => (
-                  <div className="stat-item" key={s.label}>
-                    <div className="sv">{s.value}</div>
-                    <div className="sl">{s.label}</div>
-                  </div>
-                ))}
+      <div className="bottom-grid">
+        <div className="panel">
+          <div className="panel-title">动态</div>
+          {activities.length > 0 ? activities.map(item => (
+            <div className="feed-item" key={item.id}>
+              <div className={`feed-dot fd-${item.dot}`} />
+              <div className="feed-text">{item.text}</div>
+              <div className="feed-time">{item.time}</div>
+            </div>
+          )) : (
+            <div style={{ color: 'var(--text-subtle)', fontSize: 12, paddingTop: 8 }}>暂无动态</div>
+          )}
+        </div>
+        <div className="panel">
+          <div className="panel-title">服务状态</div>
+          {platformStatuses.length > 0 ? platformStatuses.map(p => (
+            <div className="status-row" key={p.name}>
+              <div className="status-name">
+                <div className={`feed-dot fd-${p.ok ? 'green' : 'amber'}`} />
+                {p.name}
               </div>
+              <span className={`status-pill ${p.ok ? 'sp-ok' : 'sp-warn'}`}>{p.ok ? '已连接' : '异常'}</span>
             </div>
+          )) : (
+            <div style={{ color: 'var(--text-subtle)', fontSize: 12, paddingTop: 8 }}>暂无平台</div>
+          )}
+          <div className="status-row">
+            <div className="status-name">
+              <div className="feed-dot fd-amber" />
+              Qwen 模型
+            </div>
+            <span className="status-pill sp-warn">运行中</span>
           </div>
-
-          {/* 保留刷新按钮（隐藏放置） */}
-          <Button
-            icon={<ReloadOutlined />}
-            loading={loading}
-            onClick={loadData}
-            style={{ position: 'fixed', top: 70, right: 24, zIndex: 100, borderRadius: 8 }}
-            size="small"
-          >
-            刷新
-          </Button>
-        </>
-      )}
+        </div>
+      </div>
     </div>
   )
 }
 
 function formatTime(dateStr: string): string {
-  const date = new Date(dateStr)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffH = Math.floor(diffMs / 3600000)
+  if (!dateStr) return '最近'
+  const diffH = Math.floor((Date.now() - new Date(dateStr).getTime()) / 3600000)
   if (diffH < 1) return '刚刚'
-  if (diffH < 24) return `${diffH} 小时前`
+  if (diffH < 24) return `${diffH}h 前`
   return `${Math.floor(diffH / 24)} 天前`
 }

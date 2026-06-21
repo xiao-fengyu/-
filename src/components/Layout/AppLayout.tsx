@@ -1,18 +1,4 @@
-import { useState, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { Layout, Menu, ConfigProvider, theme } from 'antd'
-import {
-  DashboardOutlined,
-  PictureOutlined,
-  CloudUploadOutlined,
-  ShopOutlined,
-  SettingOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-  FileTextOutlined,
-  BarChartOutlined,
-  EditOutlined,
-} from '@ant-design/icons'
 
 import DashboardPage from '../../pages/Dashboard'
 import ImageGeneratorPage from '../../pages/ImageGenerator'
@@ -25,9 +11,6 @@ import LogsPage from '../../pages/Logs'
 
 import './AppLayout.css'
 
-const { Sider, Content } = Layout
-
-// 工作流步骤定义
 const workflowSteps = [
   { key: 'config', label: '配置' },
   { key: 'generate', label: '生成' },
@@ -36,7 +19,6 @@ const workflowSteps = [
   { key: 'publish', label: '发布' },
 ]
 
-// 根据当前路由判断工作流状态
 function getWorkflowStatus(pathname: string): { done: string[]; active: string } {
   const paths: Record<string, string> = {
     '/settings': 'config',
@@ -49,59 +31,102 @@ function getWorkflowStatus(pathname: string): { done: string[]; active: string }
   const current = paths[pathname] || 'config'
   const order = workflowSteps.map(s => s.key)
   const idx = order.indexOf(current)
-  return {
-    done: order.slice(0, idx),
-    active: current,
-  }
+  return { done: order.slice(0, idx), active: current }
 }
 
-// 工作流进度条组件
+const navItems = [
+  {
+    path: '/dashboard', label: '工作台',
+    icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>,
+  },
+  { section: '生产' },
+  {
+    path: '/image/generate', label: 'AI 生成',
+    icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="1" y="1" width="14" height="14" rx="2"/><path d="M1 11l4-4 3 3 3-4 4 5"/></svg>,
+  },
+  {
+    path: '/image/editor', label: '图片编辑',
+    icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M11.5 2.5l2 2-9 9H2.5v-2l9-9z"/></svg>,
+  },
+  { section: '发布' },
+  {
+    path: '/publish', label: '发布商品',
+    icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M8 1v10M4 7l4-6 4 6"/><path d="M2 13h12"/></svg>,
+  },
+  {
+    path: '/batch', label: '批量任务',
+    icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 5h12M2 8h8M2 11h5"/></svg>,
+  },
+  { section: '管理' },
+  {
+    path: '/platforms', label: '平台管理',
+    icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M1 4h14v8a1 1 0 01-1 1H2a1 1 0 01-1-1V4z"/><path d="M1 4l7-3 7 3"/></svg>,
+  },
+  {
+    path: '/logs', label: '日志',
+    icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M2 5h12M2 8h8M2 11h5"/></svg>,
+  },
+  {
+    path: '/settings', label: '设置',
+    icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="8" cy="8" r="2"/><path d="M8 2v1M8 13v1M2 8h1M13 8h1M3.5 3.5l.7.7M11.8 11.8l.7.7M3.5 12.5l.7-.7M11.8 4.2l.7-.7"/></svg>,
+  },
+]
+
+const pageLabels: Record<string, string> = {
+  '/dashboard': '概览',
+  '/image/generate': 'AI 生成',
+  '/image/editor': '图片编辑',
+  '/publish': '发布商品',
+  '/batch': '批量任务',
+  '/platforms': '平台管理',
+  '/logs': '日志',
+  '/settings': '设置',
+}
+
+function Sidebar() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-logo">
+        <div className="sidebar-logo-mark">e</div>
+        e-platform
+      </div>
+      {navItems.map((item, i) => {
+        if ('section' in item) {
+          return <div key={i} className="nav-section">{item.section}</div>
+        }
+        const active = location.pathname === item.path
+        return (
+          <button
+            key={item.path}
+            className={`nav-item${active ? ' active' : ''}`}
+            onClick={() => navigate(item.path)}
+          >
+            {item.icon}
+            {item.label}
+          </button>
+        )
+      })}
+    </aside>
+  )
+}
+
 function WorkflowBar() {
   const location = useLocation()
   const { done, active } = getWorkflowStatus(location.pathname)
-
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      padding: '10px 24px',
-      background: '#ffffff',
-      borderBottom: '1px solid #e2e8f0',
-      gap: 0,
-    }}>
+    <div className="workflow-bar">
       {workflowSteps.map((step, i) => {
         const isDone = done.includes(step.key)
         const isActive = active === step.key
         return (
-          <span key={step.key} style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-            <span style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '12px',
-              color: isDone ? '#10b981' : isActive ? '#6366f1' : '#cbd5e1',
-              fontWeight: isActive ? 600 : 400,
-            }}>
-              <span style={{
-                width: 22,
-                height: 22,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 10,
-                fontWeight: 600,
-                background: isDone ? '#10b981' : isActive ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : '#e2e8f0',
-                color: (isDone || isActive) ? '#fff' : '#94a3b8',
-                boxShadow: isActive ? '0 2px 6px rgba(99,102,241,0.3)' : 'none',
-              }}>
-                {isDone ? '✓' : i + 1}
-              </span>
+          <span key={step.key} style={{ display: 'flex', alignItems: 'center' }}>
+            <span className={`wf-step${isDone ? ' done' : isActive ? ' active' : ''}`}>
+              <span className="wf-num">{isDone ? '✓' : i + 1}</span>
               {step.label}
             </span>
-            {i < workflowSteps.length - 1 && (
-              <span style={{ margin: '0 8px', color: '#cbd5e1', fontSize: 12 }}>→</span>
-            )}
+            {i < workflowSteps.length - 1 && <span className="wf-sep">/</span>}
           </span>
         )
       })}
@@ -109,95 +134,30 @@ function WorkflowBar() {
   )
 }
 
-
-// Ant Design Menu 分组类型
-const groupItem = (key: string, label: string) => ({
-  key,
-  type: 'group' as const,
-  label,
-})
-
-const menuItems: (ReturnType<typeof groupItem> | { key: string; icon: ReactNode; label: string })[] = [
-  { key: '/dashboard', icon: <DashboardOutlined />, label: '工作台' },
-  groupItem('group-prod', '生 产'),
-  { key: '/image/generate', icon: <PictureOutlined />, label: 'AI 生成' },
-  { key: '/image/editor', icon: <EditOutlined />, label: '图片编辑' },
-  groupItem('group-pub', '发 布'),
-  { key: '/publish', icon: <CloudUploadOutlined />, label: '发布商品' },
-  { key: '/batch', icon: <FileTextOutlined />, label: '批量任务' },
-  groupItem('group-mgr', '管 理'),
-  { key: '/platforms', icon: <ShopOutlined />, label: '平台管理' },
-  { key: '/logs', icon: <BarChartOutlined />, label: '日志' },
-  { key: '/settings', icon: <SettingOutlined />, label: '设置' },
-]
-
-function AppMenu() {
+function Topbar() {
   const location = useLocation()
   const navigate = useNavigate()
-  const [collapsed, setCollapsed] = useState(false)
-
-  // 将分组菜单项渲染为自定义 DOM
-  const renderMenuItems = () => {
-    const items = menuItems.map((item) => {
-      if ('type' in item && item.type === 'group') {
-        return {
-          key: item.key,
-          type: 'group' as const,
-          label: (
-            <span style={{
-              fontSize: 10,
-              color: '#94a3b8',
-              fontWeight: 700,
-              letterSpacing: '2px',
-              padding: '4px 0',
-            }}>
-              {item.label}
-            </span>
-          ),
-        }
-      }
-      if ('icon' in item && item.icon) {
-        return { key: item.key, icon: item.icon, label: item.label }
-      }
-      return { key: item.key, label: item.label }
-    })
-    return items
-  }
-
+  const label = pageLabels[location.pathname] || '概览'
   return (
-    <Sider
-      collapsible
-      collapsed={collapsed}
-      onCollapse={setCollapsed}
-      trigger={null}
-      width={220}
-      className="app-sider"
-      style={{ background: '#ffffff' }}
-    >
-      <div className="app-logo">
-        {collapsed ? 'eP' : '🚀 e-platform'}
+    <div className="topbar">
+      <div className="breadcrumb">
+        <span>工作台</span>
+        <span className="breadcrumb-sep">/</span>
+        <span className="breadcrumb-current">{label}</span>
       </div>
-      <button className="sidebar-toggle" onClick={() => setCollapsed(!collapsed)}>
-        {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-      </button>
-      <Menu
-        theme="light"
-        mode="inline"
-        selectedKeys={[location.pathname]}
-        defaultOpenKeys={['/image']}
-        items={renderMenuItems()}
-        onClick={({ key }) => navigate(key)}
-        style={{ border: 'none', background: 'transparent' }}
-      />
-    </Sider>
+      <div className="topbar-spacer" />
+      <button className="topbar-btn tb-ghost" onClick={() => navigate('/logs')}>日志</button>
+      <button className="topbar-btn tb-primary" onClick={() => navigate('/image/generate')}>新建任务</button>
+    </div>
   )
 }
 
 function AppContent() {
   return (
-    <Content className="app-content">
+    <div className="main-area">
+      <Topbar />
       <WorkflowBar />
-      <div style={{ padding: '20px' }}>
+      <div className="page-content">
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
@@ -210,29 +170,17 @@ function AppContent() {
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </div>
-    </Content>
+    </div>
   )
 }
 
-function App() {
+export default function App() {
   return (
-    <ConfigProvider
-      theme={{
-        algorithm: theme.defaultAlgorithm,
-        token: {
-          colorPrimary: '#6366f1',
-          borderRadius: 12,
-        },
-      }}
-    >
-      <BrowserRouter>
-        <Layout className="app-layout">
-          <AppMenu />
-          <AppContent />
-        </Layout>
-      </BrowserRouter>
-    </ConfigProvider>
+    <BrowserRouter>
+      <div className="app-layout">
+        <Sidebar />
+        <AppContent />
+      </div>
+    </BrowserRouter>
   )
 }
-
-export default App
