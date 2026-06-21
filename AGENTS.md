@@ -12,10 +12,11 @@
 每次改动完成后，必须按顺序执行：
 1. 代码审查。
 2. 风险检查，至少覆盖安全、性能、bug 风险。
-3. 审查通过后再推送 GitHub。
-4. 测试必须采用两段式验证：
-   - UI 触发真实操作。
-   - 脚本读取真实结果。
+3. 编写对应的 UI 自动化测试脚本（如涉及用户可见流程）。
+4. 审查通过后再推送 GitHub。
+5. 测试必须采用两段式验证：
+   - 本机 Codex 在 `tests/scenarios/` 编写完整的 UI 自动化测试脚本。
+   - Windows 环境拉脚本执行，返回结构化测试结果。
 
 ## 交付要求
 
@@ -24,10 +25,17 @@
 - 涉及 Settings、模型配置、生成链路、发布链路的改动，必须保留截图、日志或接口返回中的至少一种证据。
 - 不要把旧测试清单中的过期预置项当成当前行为。
 
+## 核心工作流
+
+**本机 Codex 写脚本，Windows 执行脚本。**
+
+- 本机 Codex：基于完整的项目理解和代码上下文，编写针对改动的 UI 自动化测试脚本，脚本放在 `tests/scenarios/` 并提交到 GitHub。
+- Windows 环境：拉脚本执行，采集结果，返回结构化的 JSON 报告和诊断截图，存放在 `test-reports/runs/`。
+
 ## 说明
 
 本文件优先级高于对话中的临时约定，适用于当前仓库内后续 Codex 改动。
 
 ## 项目内 workflow skill
 
-项目内工作流 skill 草案位于 `docs/skills/e-platform-workflow/SKILL.md`。处理 e-platform 改动、测试流水线、Windows 真机验证、报告归档或推送门禁时，应先读取该文件并按其中流程执行。
+项目内工作流 skill 位于 `docs/skills/e-platform-workflow/SKILL.md`。处理 e-platform 改动、测试流水线、Windows 真机验证、报告归档或推送门禁时，应先读取该文件并按其中流程执行。
