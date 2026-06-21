@@ -68,6 +68,49 @@ npm run electron:package
 
 ### GitHub Actions 构建 Windows exe 安装包
 
+## 测试工作流
+
+### 核心原则
+
+**本机 Codex 写脚本，Windows 执行脚本。**
+
+- 本机 Codex：基于完整的项目理解和代码上下文，编写针对改动的 UI 自动化测试脚本，脚本放在 `tests/scenarios/` 并提交到 GitHub。
+- Windows 环境：拉脚本执行，采集结果，返回结构化的 JSON 报告和诊断截图，存放在 `test-reports/runs/`。
+
+### 测试脚本编写
+
+每个改动涉及用户可见流程时，必须在 `tests/scenarios/` 中编写对应的 UI 自动化测试脚本。
+
+脚本命名规范：`{功能}-{变体}.js`（例如 `image-generation-qwen.js`）
+
+脚本必须包含：
+- 前置环境检查（端口、后端健康检查）
+- UI 操作（启动、配置、导航、点击）
+- API 监听和响应等待
+- 真实数据校验（文件系统、数据库、API 返回）
+- 诊断数据采集（失败时采集截图、日志）
+- 清理逻辑（删除测试数据、恢复环境）
+
+脚本返回结构化 JSON 格式的测试结果。详见 `tests/README.md` 和 `docs/skills/e-platform-workflow/SKILL.md`。
+
+### 测试结果
+
+所有测试结果存放在 `test-reports/runs/` 目录，按时间戳组织（`YYYY-MM-DD-HH-MM-SS-{test-name}/`），包含：
+- `report.json`：结构化测试结果
+- `report.md`：可读的测试报告
+- `screenshots/`：诊断截图
+- `logs/`：诊断日志
+
+### 工作流
+
+1. **改动代码** → 修改源代码，审查风险。
+2. **编写脚本** → 在 `tests/scenarios/` 编写 UI 自动化测试脚本。
+3. **提交到 GitHub** → 脚本与源代码改动在同一个 commit 中。
+4. **Windows 执行** → Windows 环境拉脚本，执行后返回结果到 `test-reports/runs/`。
+5. **本机接收结果** → 从 `test-reports/runs/` 读取测试报告，判断是否通过。
+
+详见 `docs/skills/e-platform-workflow/SKILL.md` 和 `tests/README.md`。
+
 仓库已提供 Windows Runner 的 GitHub Actions 工作流：
 
 - 工作流文件：`.github/workflows/build-windows-exe.yml`
